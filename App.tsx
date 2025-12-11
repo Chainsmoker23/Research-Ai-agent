@@ -28,9 +28,10 @@ const App: React.FC = () => {
 
   // Cycle loading messages
   useEffect(() => {
-    if (!isLoading || step !== AppStep.RESEARCHING) return;
+    if (!isLoading) return;
     
-    const messages = [
+    // Different messages based on phase
+    const researchMessages = [
       "Deploying Multi-Agent Search Grid...",
       "Agent IEEE: Querying Xplore Database...",
       "Agent Springer: Scanning Nature Portfolio...",
@@ -39,43 +40,36 @@ const App: React.FC = () => {
       "Aggregating and Deduplicating 40+ Sources...",
       "Verifying Impact Factors..."
     ];
+
+    const topicMessages = [
+        "Scanning literature for inconsistencies...",
+        "Identifying open problems in recent papers...",
+        "Calculating novelty scores...",
+        "Evaluating feasibility of proposed gaps..."
+    ];
+
+    let messages = researchMessages;
+    if (step === AppStep.TOPIC_GENERATION) messages = topicMessages;
+
     let i = 0;
     const interval = setInterval(() => {
       setLoadingMessage(messages[i % messages.length]);
       i++;
-    }, 2500); // Faster cycle to show activity
+    }, 2500);
 
     return () => clearInterval(interval);
   }, [isLoading, step]);
 
-  // Handler: Step 1 - Domain Input -> Generate Topics
+  // Handler: Step 1 - Domain Input -> Systematic Review
   const handleDomainSubmit = async (searchDomain: string) => {
     setDomain(searchDomain);
-    setIsLoading(true);
-    setLoadingMessage("Identifying novel research gaps...");
-    try {
-      const generatedTopics = await GeminiService.generateNovelTopics(searchDomain);
-      setTopics(generatedTopics);
-      setStep(AppStep.TOPIC_GENERATION);
-    } catch (error) {
-      console.error(error);
-      alert("Error generating topics. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handler: Step 2 - Select Topic -> Systematic Review
-  const handleSelectTopic = async (topic: ResearchTopic) => {
-    setSelectedTopic(topic);
     setStep(AppStep.RESEARCHING);
-    await performLiteratureSearch(topic.title, includePreprints);
+    await performLiteratureSearch(searchDomain, includePreprints);
   };
 
   const performLiteratureSearch = async (query: string, preprints: boolean) => {
     setIsLoading(true);
-    // Reset references only if it's a new search, but we want to show loading
-    setReferences([]); 
+    setReferences([]); // Clear old refs on new search
     setLoadingMessage("Initializing Multi-Engine Literature Search...");
     
     try {
@@ -91,36 +85,52 @@ const App: React.FC = () => {
 
   const handleTogglePreprints = (enabled: boolean) => {
     setIncludePreprints(enabled);
-    if (selectedTopic) {
+    if (domain) {
       // Re-run search if toggle changes
-      performLiteratureSearch(selectedTopic.title, enabled);
+      performLiteratureSearch(domain, enabled);
     }
   };
 
-  // Handler: Step 3 - Analyze Method
+  // Handler: Step 2 - Review Refs -> Generate Topics
   const handleConfirmReferences = async () => {
-    if (!selectedTopic) return;
     setIsLoading(true);
-    setLoadingMessage("Analyzing methodological fit...");
+    setLoadingMessage("Identifying novel research gaps based on literature...");
     try {
-      const methods = await GeminiService.proposeMethodologies(selectedTopic.title, references);
-      setMethodologies(methods);
-      setStep(AppStep.METHODOLOGY_SELECTION);
+      const generatedTopics = await GeminiService.generateNovelTopics(domain, references);
+      setTopics(generatedTopics);
+      setStep(AppStep.TOPIC_GENERATION);
     } catch (error) {
       console.error(error);
-      alert("Failed to analyze methodology.");
+      alert("Failed to generate topics.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handler: Step 4 - Select Method
+  // Handler: Step 3 - Select Topic -> Method
+  const handleSelectTopic = async (topic: ResearchTopic) => {
+    setSelectedTopic(topic);
+    setIsLoading(true);
+    setLoadingMessage("Analyzing methodology fit...");
+    try {
+        const methods = await GeminiService.proposeMethodologies(topic.title, references);
+        setMethodologies(methods);
+        setStep(AppStep.METHODOLOGY_SELECTION);
+    } catch (error) {
+        console.error(error);
+        alert("Failed to generate methodologies.");
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  // Handler: Step 4 - Select Method -> Template
   const handleSelectMethodology = (method: MethodologyOption) => {
     setSelectedMethodology(method);
     setStep(AppStep.TEMPLATE_SELECTION);
   };
 
-  // Handler: Step 5 - Select Template & Generate
+  // Handler: Step 5 - Select Template -> Generate
   const handleSelectTemplate = async (template: LatexTemplate) => {
     if (!selectedMethodology || !selectedTopic) return;
     
@@ -151,9 +161,6 @@ const App: React.FC = () => {
       case AppStep.TOPIC_INPUT:
         return <TopicInput onSearch={handleDomainSubmit} isLoading={isLoading} />;
       
-      case AppStep.TOPIC_GENERATION:
-        return <TopicGenerator topics={topics} onSelectTopic={handleSelectTopic} isLoading={isLoading} />;
-
       case AppStep.RESEARCHING:
         if (isLoading && references.length === 0) {
           return (
@@ -178,12 +185,15 @@ const App: React.FC = () => {
           <ReferenceList 
             references={references} 
             onConfirm={handleConfirmReferences} 
-            isLoading={isLoading} // Loading might be true if regenerating
+            isLoading={isLoading} 
             onTogglePreprints={handleTogglePreprints}
             includePreprints={includePreprints}
-            onRefresh={() => selectedTopic && performLiteratureSearch(selectedTopic.title, includePreprints)}
+            onRefresh={() => performLiteratureSearch(domain, includePreprints)}
           />
         );
+
+      case AppStep.TOPIC_GENERATION:
+         return <TopicGenerator topics={topics} onSelectTopic={handleSelectTopic} isLoading={isLoading} />;
 
       case AppStep.METHODOLOGY_SELECTION:
         return (
@@ -238,10 +248,10 @@ const App: React.FC = () => {
           {/* Progress Steps */}
           <div className="hidden md:flex items-center gap-2 text-sm">
             {[
-              "Domain", "Topics", "Literature", "Methodology", "Template", "Draft"
+              "Domain", "Literature", "Gap Analysis", "Methodology", "Template", "Draft"
             ].map((label, idx) => {
               // Mapping step enum to visual index
-              // Input=0, TopicGen=1, Research=2, Method=3, Templ=4, Draft=5
+              // Input=0, Research=1, TopicGen=2, Method=3, Templ=4, Draft=5
               const currentStep = step === AppStep.FINISHED ? 6 : step;
               let isActive = currentStep === idx;
               let isCompleted = currentStep > idx;

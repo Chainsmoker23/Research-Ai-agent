@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Reference } from '../types';
-import { BookOpen, ExternalLink, CheckCircle, AlertTriangle, Filter } from 'lucide-react';
+import { BookOpen, ExternalLink, CheckCircle, AlertTriangle, Filter, ArrowRight as ArrowIcon, Sparkles } from 'lucide-react';
 
 interface ReferenceListProps {
   references: Reference[];
@@ -154,15 +154,10 @@ export const ReferenceList: React.FC<ReferenceListProps> = ({
           disabled={isLoading || references.length === 0}
           className="flex items-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-50 font-medium text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
         >
-          {isLoading ? "Processing..." : "Analyze Methodology"}
-          {!isLoading && <ArrowRight className="h-5 w-5" />}
+          {isLoading ? "Analyzing..." : "Identify Research Gaps"}
+          {!isLoading && <Sparkles className="h-5 w-5 text-amber-300" />}
         </button>
       </div>
     </div>
   );
 };
-
-// Internal icon
-const ArrowRight = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-);

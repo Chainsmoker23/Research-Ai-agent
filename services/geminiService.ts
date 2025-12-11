@@ -10,15 +10,22 @@ const getClient = () => {
   return new GoogleGenAI({ apiKey });
 };
 
-export const generateNovelTopics = async (domain: string): Promise<ResearchTopic[]> => {
+// Now accepts references to base topics on actual literature
+export const generateNovelTopics = async (domain: string, references: Reference[]): Promise<ResearchTopic[]> => {
   const ai = getClient();
   const modelId = "gemini-3-pro-preview"; // High reasoning model for novelty
 
+  // Create a concise context from the references
+  const refContext = references.map((r, i) => `[${i+1}] ${r.title} (${r.year})`).join("\n");
+
   const prompt = `
-    I want to conduct research in the domain of: "${domain}".
+    I have conducted a systematic literature review in the domain of: "${domain}".
     
-    Identify 5 distinct, NOVEL, and relatively UNEXPLORED research topics/gaps within this domain.
-    Focus on areas that are cutting-edge, feasible for a single researcher or small team, and have high publication potential in top journals (IEEE, Springer, Elsevier).
+    Here are the key papers found:
+    ${refContext}
+    
+    Based strictly on this literature, identify 5 distinct, NOVEL, and relatively UNEXPLORED research topics/gaps.
+    The topics must not just be "more of the same" but should address specific limitations, contradictions, or underexplored intersections in these papers.
 
     Output a JSON array of objects.
     Schema:
@@ -27,7 +34,7 @@ export const generateNovelTopics = async (domain: string): Promise<ResearchTopic
         "id": "1",
         "title": "Precise Research Title",
         "description": "Brief explanation of the research idea",
-        "gap": "What specific gap in current literature does this address?",
+        "gap": "Explicitly state which papers (e.g., [1], [5]) this builds upon or contradicts.",
         "noveltyScore": 85, (Number 1-100 based on uniqueness)
         "feasibility": "High" (High/Medium/Low)
       }
