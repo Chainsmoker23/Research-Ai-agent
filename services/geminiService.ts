@@ -15,17 +15,44 @@ export const generateNovelTopics = async (domain: string, references: Reference[
   const ai = getClient();
   const modelId = "gemini-3-pro-preview"; // High reasoning model for novelty
 
-  // Create a concise context from the references
-  const refContext = references.map((r, i) => `[${i+1}] ${r.title} (${r.year})`).join("\n");
+  // Prioritize verified papers with abstracts for the reasoning context
+  // This enables the model to perform "deep reading" rather than just title skimming
+  const richContext = references
+    .filter(r => r.isVerified && r.abstract)
+    .slice(0, 15) // Top 15 verified with abstracts to fit context efficiently
+    .map((r, i) => `
+      PAPER [${i+1}]
+      Title: ${r.title}
+      Year: ${r.year}
+      Venue: ${r.venue || r.source}
+      Citations: ${r.citationCount || 'N/A'}
+      Abstract: ${r.abstract}
+    `).join("\n\n");
+    
+  // Fallback/Supplementary context for papers without abstracts
+  const basicContext = references
+     .filter(r => !r.isVerified || !r.abstract)
+     .slice(0, 20)
+     .map(r => `[Paper] ${r.title} (${r.year})`)
+     .join("\n");
 
   const prompt = `
-    I have conducted a systematic literature review in the domain of: "${domain}".
+    I have conducted a systematic literature review and deep validation in the domain of: "${domain}".
     
-    Here are the key papers found:
-    ${refContext}
+    Here is the Verified Knowledge Graph (Top Papers with Abstracts):
+    ${richContext}
     
-    Based strictly on this literature, identify 5 distinct, NOVEL, and relatively UNEXPLORED research topics/gaps.
-    The topics must not just be "more of the same" but should address specific limitations, contradictions, or underexplored intersections in these papers.
+    Additional Scanned Papers:
+    ${basicContext}
+
+    ROLE: Senior Research Scientist.
+    TASK: Perform a high-level meta-analysis to generate 5 NOVEL Research Topics.
+    
+    REASONING MODULE INSTRUCTIONS:
+    1. READ the abstracts to identify specific technical limitations.
+    2. FIND CONTRADICTIONS: Where do papers disagree?
+    3. IDENTIFY SATURATION: What is over-researched?
+    4. SYNTHESIZE: Propose "Synthetic Contributions" (e.g., combining Algorithm A from Paper [1] with Framework B from Paper [3]).
 
     Output a JSON array of objects.
     Schema:
@@ -34,7 +61,7 @@ export const generateNovelTopics = async (domain: string, references: Reference[
         "id": "1",
         "title": "Precise Research Title",
         "description": "Brief explanation of the research idea",
-        "gap": "Explicitly state which papers (e.g., [1], [5]) this builds upon or contradicts.",
+        "gap": "Explicitly state the overlap/contradiction found. E.g., 'While [1] proposes X, it fails to account for Y shown in [3].'",
         "noveltyScore": 85, (Number 1-100 based on uniqueness)
         "feasibility": "High" (High/Medium/Low)
       }
@@ -124,7 +151,7 @@ const runSpecializedAgent = async (
     2. Prioritize papers from 2020-2025.
     3. Output raw JSON array.
 
-    Output Format: [{"title": "...", "authors": ["..."], "year": "...", "url": "...", "doi": "...", "snippet": "...", "source": "${agentName}", "isPreprint": boolean, "isVerified": true}]
+    Output Format: [{"title": "...", "authors": ["..."], "year": "...", "url": "...", "doi": "...", "snippet": "...", "source": "${agentName}", "isPreprint": boolean, "isVerified": false}]
   `;
 
   try {
@@ -136,14 +163,31 @@ const runSpecializedAgent = async (
     
     const refs = extractJson(response.text || "");
     // Tag the source explicitly if the model didn't
-    return refs.map(r => ({ ...r, source: r.source || agentName }));
+    return refs.map(r => ({ ...r, source: r.source || agentName, isVerified: false }));
   } catch (error) {
     console.warn(`Agent ${agentName} failed:`, error);
     return [];
   }
 };
 
-export const searchLiterature = async (topic: string, includePreprints: boolean): Promise<Reference[]> => {
+export const searchLiterature = async (
+  topic: string, 
+  includePreprints: boolean,
+  onProgress?: (agentName: string, count: number) => void
+): Promise<Reference[]> => {
+  
+  // Wrapper to intercept completion and report progress
+  const wrapAgent = async (name: string, promise: Promise<Reference[]>) => {
+    try {
+      const results = await promise;
+      if (onProgress) onProgress(name, results.length);
+      return results;
+    } catch (e) {
+      if (onProgress) onProgress(name, 0);
+      return [];
+    }
+  };
+
   // We launch 4 parallel agents
   const agent1_IEEE = runSpecializedAgent(
     "IEEE Xplore", 
@@ -174,7 +218,12 @@ export const searchLiterature = async (topic: string, includePreprints: boolean)
   );
 
   // Wait for all agents
-  const results = await Promise.all([agent1_IEEE, agent2_Springer, agent3_Elsevier, agent4_General]);
+  const results = await Promise.all([
+    wrapAgent("IEEE Xplore", agent1_IEEE),
+    wrapAgent("Springer Nature", agent2_Springer),
+    wrapAgent("Elsevier", agent3_Elsevier),
+    wrapAgent("General", agent4_General)
+  ]);
   
   // Flatten results
   const allRefs = results.flat();
@@ -254,7 +303,7 @@ export const generateLatexManuscript = async (
   const ai = getClient();
   const modelId = "gemini-3-pro-preview";
 
-  const refString = references.map((r, i) => `[${i+1}] ${r.authors.join(", ")}. "${r.title}". ${r.source}, ${r.year}.`).join("\n");
+  const refString = references.map((r, i) => `[${i+1}] ${r.authors.join(", ")}. "${r.title}". ${r.venue || r.source}, ${r.year}.`).join("\n");
 
   const prompt = `
     You are an expert academic researcher.

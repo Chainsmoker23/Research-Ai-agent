@@ -2,23 +2,34 @@ import React, { useState, useEffect } from 'react';
 import { AppStep, Reference, MethodologyOption, LatexTemplate, ResearchTopic } from './types';
 import { TEMPLATES } from './constants';
 import * as GeminiService from './services/geminiService';
+import * as CitationService from './services/citationService';
 import { TopicInput } from './components/TopicInput';
 import { TopicGenerator } from './components/TopicGenerator';
 import { ReferenceList } from './components/ReferenceList';
 import { MethodologySelector } from './components/MethodologySelector';
 import { TemplateSelector } from './components/TemplateSelector';
 import { LatexPreview } from './components/LatexPreview';
+import { LandingPage } from './components/LandingPage';
+import { Footer } from './components/Footer';
 import { Loader2 } from 'lucide-react';
+import { LemurMascot } from './components/LemurMascot';
+import { ResearchProgress } from './components/ResearchProgress';
 
 const App: React.FC = () => {
   // State
-  const [step, setStep] = useState<AppStep>(AppStep.TOPIC_INPUT);
+  const [step, setStep] = useState<AppStep>(AppStep.LANDING);
   const [domain, setDomain] = useState<string>("");
   const [topics, setTopics] = useState<ResearchTopic[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<ResearchTopic | null>(null);
   
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loadingMessage, setLoadingMessage] = useState<string>("Processing...");
+  
+  // Granular Loading States
+  const [loadingPhase, setLoadingPhase] = useState<'searching' | 'validating' | 'analyzing'>('searching');
+  const [searchLogs, setSearchLogs] = useState<string[]>([]);
+  const [validationProgress, setValidationProgress] = useState({ current: 0, total: 0, lastProcessed: "" });
+
   const [includePreprints, setIncludePreprints] = useState<boolean>(false);
   
   const [references, setReferences] = useState<Reference[]>([]);
@@ -26,39 +37,33 @@ const App: React.FC = () => {
   const [selectedMethodology, setSelectedMethodology] = useState<MethodologyOption | null>(null);
   const [generatedLatex, setGeneratedLatex] = useState<string>("");
 
-  // Cycle loading messages
+  // Cycle generic loading messages for non-granular phases
   useEffect(() => {
-    if (!isLoading) return;
+    if (!isLoading || step === AppStep.RESEARCHING) return;
     
-    // Different messages based on phase
-    const researchMessages = [
-      "Deploying Multi-Agent Search Grid...",
-      "Agent IEEE: Querying Xplore Database...",
-      "Agent Springer: Scanning Nature Portfolio...",
-      "Agent Elsevier: Retrieving ScienceDirect Articles...",
-      "Agent General: Validating Metadata...",
-      "Aggregating and Deduplicating 40+ Sources...",
-      "Verifying Impact Factors..."
-    ];
-
     const topicMessages = [
+        "Reading verified abstracts...",
         "Scanning literature for inconsistencies...",
         "Identifying open problems in recent papers...",
+        "Synthesizing new conceptual frameworks...",
         "Calculating novelty scores...",
-        "Evaluating feasibility of proposed gaps..."
     ];
 
-    let messages = researchMessages;
-    if (step === AppStep.TOPIC_GENERATION) messages = topicMessages;
+    let messages = topicMessages;
 
     let i = 0;
     const interval = setInterval(() => {
       setLoadingMessage(messages[i % messages.length]);
       i++;
-    }, 2500);
+    }, 2000);
 
     return () => clearInterval(interval);
   }, [isLoading, step]);
+
+  // Handler: Start from Landing
+  const handleStartApp = () => {
+    setStep(AppStep.TOPIC_INPUT);
+  };
 
   // Handler: Step 1 - Domain Input -> Systematic Review
   const handleDomainSubmit = async (searchDomain: string) => {
@@ -69,12 +74,29 @@ const App: React.FC = () => {
 
   const performLiteratureSearch = async (query: string, preprints: boolean) => {
     setIsLoading(true);
-    setReferences([]); // Clear old refs on new search
-    setLoadingMessage("Initializing Multi-Engine Literature Search...");
+    setReferences([]);
+    setSearchLogs([]);
+    setValidationProgress({ current: 0, total: 0, lastProcessed: "" });
+    setLoadingPhase('searching');
+    setLoadingMessage("Deploying Multi-Agent Search Grid...");
     
     try {
-      const refs = await GeminiService.searchLiterature(query, preprints);
-      setReferences(refs);
+      // 1. Fetch Candidate References using Gemini + Google Search
+      // We pass a callback to track individual agent completion
+      const candidates = await GeminiService.searchLiterature(query, preprints, (agentName, count) => {
+         setSearchLogs(prev => [...prev, `${agentName}: Retrieved ${count} candidate papers.`]);
+      });
+      
+      // 2. Validate and Enrich using OpenAlex
+      setLoadingPhase('validating');
+      setLoadingMessage("Cross-referencing with OpenAlex Knowledge Graph...");
+      setValidationProgress({ current: 0, total: candidates.length, lastProcessed: "Initializing..." });
+
+      const validatedRefs = await CitationService.validateBatch(candidates, (current, total, title) => {
+         setValidationProgress({ current, total, lastProcessed: title });
+      });
+      
+      setReferences(validatedRefs);
     } catch (error) {
       console.error(error);
       alert("Error searching literature.");
@@ -92,11 +114,13 @@ const App: React.FC = () => {
   };
 
   // Handler: Step 2 - Review Refs -> Generate Topics
-  const handleConfirmReferences = async () => {
+  const handleConfirmReferences = async (selectedRefs: Reference[]) => {
     setIsLoading(true);
-    setLoadingMessage("Identifying novel research gaps based on literature...");
+    setLoadingPhase('analyzing');
+    setLoadingMessage(`Analyzing ${selectedRefs.length} selected papers for contradictions and overlaps...`);
     try {
-      const generatedTopics = await GeminiService.generateNovelTopics(domain, references);
+      // Use only the selected subset for the reasoning engine
+      const generatedTopics = await GeminiService.generateNovelTopics(domain, selectedRefs);
       setTopics(generatedTopics);
       setStep(AppStep.TOPIC_GENERATION);
     } catch (error) {
@@ -105,6 +129,10 @@ const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleBackToTopic = () => {
+     setStep(AppStep.TOPIC_INPUT);
   };
 
   // Handler: Step 3 - Select Topic -> Method
@@ -158,33 +186,28 @@ const App: React.FC = () => {
   // Render Helpers
   const renderStep = () => {
     switch (step) {
+      case AppStep.LANDING:
+        return <LandingPage onStart={handleStartApp} />;
+
       case AppStep.TOPIC_INPUT:
         return <TopicInput onSearch={handleDomainSubmit} isLoading={isLoading} />;
       
       case AppStep.RESEARCHING:
         if (isLoading && references.length === 0) {
           return (
-            <div className="flex flex-col items-center justify-center h-64 space-y-6 animate-fade-in text-center">
-              <div className="relative">
-                <Loader2 className="w-16 h-16 text-indigo-600 animate-spin" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-8 h-8 bg-indigo-50 rounded-full animate-pulse opacity-50"></div>
-                </div>
-              </div>
-              <div>
-                <p className="text-xl font-bold text-slate-900">{loadingMessage}</p>
-                <p className="text-sm text-slate-500 mt-2">Deploying parallel agents to 4 academic databases...</p>
-                <div className="w-64 h-1.5 bg-slate-200 rounded-full mx-auto mt-4 overflow-hidden">
-                   <div className="h-full bg-indigo-600 animate-progress origin-left w-full"></div>
-                </div>
-              </div>
-            </div>
+             <ResearchProgress 
+                phase={loadingPhase}
+                searchLogs={searchLogs}
+                validationProgress={validationProgress}
+                message={loadingMessage}
+             />
           );
         }
         return (
           <ReferenceList 
             references={references} 
             onConfirm={handleConfirmReferences} 
+            onBack={handleBackToTopic}
             isLoading={isLoading} 
             onTogglePreprints={handleTogglePreprints}
             includePreprints={includePreprints}
@@ -224,6 +247,14 @@ const App: React.FC = () => {
     }
   };
 
+  // Step labels for desktop
+  const STEP_LABELS = [
+    "Domain", "Literature", "Gap Analysis", "Methodology", "Template", "Draft"
+  ];
+  
+  // Is research process active?
+  const isProcessActive = step !== AppStep.LANDING;
+
   return (
     <div className="min-h-screen flex flex-col font-sans bg-slate-50">
       <style>{`
@@ -240,51 +271,77 @@ const App: React.FC = () => {
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">S</div>
-            <span className="font-bold text-slate-900 text-lg">ScholarAgent</span>
+          <div 
+             className="flex items-center gap-2 cursor-pointer group"
+             onClick={() => setStep(AppStep.LANDING)}
+          >
+            {/* Small Header Mascot Icon */}
+            <div className="w-8 h-8 flex items-center justify-center bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors">
+               <LemurMascot className="w-6 h-6" />
+            </div>
+            <span className="font-bold text-slate-900 text-lg hidden xs:block">ScholarAgent</span>
           </div>
           
-          {/* Progress Steps */}
-          <div className="hidden md:flex items-center gap-2 text-sm">
-            {[
-              "Domain", "Literature", "Gap Analysis", "Methodology", "Template", "Draft"
-            ].map((label, idx) => {
-              // Mapping step enum to visual index
-              // Input=0, Research=1, TopicGen=2, Method=3, Templ=4, Draft=5
-              const currentStep = step === AppStep.FINISHED ? 6 : step;
-              let isActive = currentStep === idx;
-              let isCompleted = currentStep > idx;
-              
-              return (
-                <div key={label} className="flex items-center">
-                  <span className={`
-                    px-3 py-1 rounded-full transition-colors
-                    ${isActive ? 'bg-indigo-100 text-indigo-700 font-medium' : ''}
-                    ${isCompleted ? 'text-indigo-600' : ''}
-                    ${!isActive && !isCompleted ? 'text-slate-400' : ''}
-                  `}>
-                    {label}
-                  </span>
-                  {idx < 5 && <div className="w-4 h-px bg-slate-300 mx-1" />}
-                </div>
-              )
-            })}
-          </div>
+          {/* Desktop Progress Steps - Only show if active */}
+          {isProcessActive && (
+            <div className="hidden md:flex items-center gap-2 text-sm overflow-x-auto scrollbar-hide">
+              {STEP_LABELS.map((label, idx) => {
+                const currentStep = step === AppStep.FINISHED ? 6 : step;
+                let isActive = currentStep === idx;
+                let isCompleted = currentStep > idx;
+                
+                return (
+                  <div key={label} className="flex items-center whitespace-nowrap">
+                    <span className={`
+                      px-3 py-1 rounded-full transition-colors text-xs font-medium
+                      ${isActive ? 'bg-indigo-100 text-indigo-700' : ''}
+                      ${isCompleted ? 'text-indigo-600' : ''}
+                      ${!isActive && !isCompleted ? 'text-slate-400' : ''}
+                    `}>
+                      {label}
+                    </span>
+                    {idx < 5 && <div className="w-4 h-px bg-slate-200 mx-1" />}
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
-          <div className="w-8"></div> {/* Spacer */}
+          {/* Mobile Step Indicator - Only show if active */}
+          {isProcessActive && (
+            <div className="md:hidden flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Step</span>
+              <span className="flex items-center justify-center bg-indigo-100 text-indigo-700 text-sm font-bold w-6 h-6 rounded-full">
+                {(step === AppStep.FINISHED ? 5 : step) + 1}
+              </span>
+              <span className="text-slate-300">/</span>
+              <span className="text-sm text-slate-400 font-medium">6</span>
+            </div>
+          )}
+
+          {/* Spacer or simple button if on landing */}
+          {!isProcessActive ? (
+             <div className="hidden md:block">
+                <button 
+                  onClick={handleStartApp}
+                  className="text-sm font-medium text-slate-600 hover:text-indigo-600 transition-colors"
+                >
+                  Start Project
+                </button>
+             </div>
+          ) : (
+            <div className="w-8 md:block hidden"></div> 
+          )}
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-grow p-6 flex flex-col items-center justify-start pt-8">
+      <main className={`flex-grow flex flex-col items-center justify-start ${isProcessActive ? 'p-4 md:p-8' : ''}`}>
         {renderStep()}
       </main>
 
-      {/* Footer */}
-      <footer className="py-6 text-center text-slate-400 text-sm">
-        <p>Powered by Google Gemini • Validated Research Engine</p>
-      </footer>
+      {/* Global Footer */}
+      <Footer />
     </div>
   );
 };

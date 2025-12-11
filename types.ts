@@ -1,4 +1,5 @@
 export enum AppStep {
+  LANDING = -1,
   TOPIC_INPUT = 0,
   RESEARCHING = 1,
   TOPIC_GENERATION = 2,
@@ -24,7 +25,10 @@ export interface Reference {
   url?: string;
   doi?: string;
   snippet: string;
-  source: string;
+  source: string; // Original search agent source
+  venue?: string; // Validated publication venue (e.g. Journal Name)
+  citationCount?: number;
+  abstract?: string;
   isPreprint: boolean;
   isVerified: boolean;
 }
