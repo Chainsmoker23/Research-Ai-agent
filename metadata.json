@@ -1,0 +1,5 @@
+{
+  "name": "ScholarAgent",
+  "description": "An autonomous scientific research agent that generates rigorous LaTeX academic papers with verified references.",
+  "requestFramePermissions": []
+}
