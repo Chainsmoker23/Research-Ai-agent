@@ -1,5 +1,7 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { Reference, MethodologyOption, ResearchTopic, AuthorMetadata, NoveltyAssessment } from "../types";
+import * as CitationService from './citationService';
 
 // Helper to get client
 const getClient = () => {
@@ -194,7 +196,7 @@ const runSpecializedAgent = async (
     STRICT SOURCE CONSTRAINTS:
     ${focusInstructions}
     
-    PREPRINT POLICY: ${allowPreprints ? "High-quality preprints (arXiv/bioRxiv) ARE allowed if relevant." : "NO preprints. Strictly peer-reviewed."}
+    PREPRINT POLICY: ${allowPreprints ? "High-quality preprints (arXiv/bioRxiv) ARE allowed if relevant." : "Do NOT include preprints. Strictly peer-reviewed."}
 
     REQUIREMENTS:
     1. Verify DOIs/URLs. Fake citations are prohibited.
@@ -285,6 +287,18 @@ export const searchLiterature = async (
 
   return uniqueRefs;
 };
+
+// Deprecated in favor of deepSearchService, but kept for compatibility if needed.
+// Logic moved to services/deepSearchService.ts
+export const expandBibliography = async (
+  topic: string, 
+  abstract: string,
+  existingRefs: Reference[],
+  onProgress?: (msg: string) => void
+): Promise<Reference[]> => {
+    return []; // No-op, now handled by orchestrator calling deepSearchService
+};
+
 
 export const proposeMethodologies = async (topic: string, references: Reference[]): Promise<MethodologyOption[]> => {
   const ai = getClient();
@@ -388,8 +402,10 @@ export const generateDraftSection = async (
   const ai = getClient();
   const modelId = "gemini-3-pro-preview";
 
+  // Use up to 80 references if available, pass the citation keys
   const refString = references.map((r, i) => {
-    const key = r.citationKey || `ref${i+1}`;
+    // Ensure key exists
+    const key = r.citationKey || `ref${i+1}`; 
     return `[${key}] ${r.title} (${r.year})`;
   }).join("\n");
 
@@ -403,7 +419,7 @@ export const generateDraftSection = async (
     Current Topic: ${topic}
     Methodology: ${methodology.name}
 
-    Available References (Use inline citations like \\cite{key}):
+    Available References (You MUST cite relevant ones using \\cite{key}):
     ${refString}
 
     REQUIREMENTS:
@@ -412,6 +428,7 @@ export const generateDraftSection = async (
     3. Be rigorous, academic, and dense.
     4. If writing Introduction or Related Work, you MUST cite the provided references using \\cite{citationKey}.
     5. If writing Methodology, be specific to ${methodology.description}.
+    6. Ensure the tone is formal and scientific.
     
     Output pure LaTeX code for this section only.
   `;

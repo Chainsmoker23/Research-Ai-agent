@@ -10,7 +10,7 @@ export enum AppStep {
   TEMPLATE_SELECTION = 6,
   DRAFTING = 7,
   FINISHED = 8,
-  PEER_REVIEW = 9,    // New Step
+  PEER_REVIEW = 9,    // External Reviewer
 }
 
 export interface ResearchTopic {
@@ -113,4 +113,21 @@ export interface ReviewReport {
   summary: string;
   agentReviews: ReviewAgentResult[];
   referenceAudit?: ReferenceAudit;
+}
+
+// --- EDITORIAL BOARD TYPES ---
+
+export interface EditorialLog {
+  agentName: string;
+  action: string;
+  details: string;
+  timestamp: number;
+}
+
+export interface EditorialState {
+  iteration: number;
+  currentAgent: 'Typesetter' | 'Reviewer' | 'Auditor' | 'Editor-in-Chief' | 'Idle';
+  logs: EditorialLog[];
+  qualityScore: number;
+  isComplete: boolean;
 }
