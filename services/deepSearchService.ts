@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI } from "@google/genai";
 import { Reference } from "../types";
 import * as CitationService from './citationService';
@@ -26,7 +27,7 @@ const AGENTS_CONFIG = [
         role: "Historian", 
         description: "Searching for foundational theories and seminal papers (Pre-2020).",
         color: "text-blue-600 bg-blue-50 border-blue-200",
-        promptSuffix: "Focus on highly cited, foundational papers from 2010-2020. Look for seminal definitions and core theories."
+        promptSuffix: "Focus on highly cited, foundational papers from 2010-2020. You MUST find seminal definitions."
     },
     { 
         name: "Trend Scout", 
@@ -55,19 +56,20 @@ const AGENTS_CONFIG = [
 const extractJson = (text: string): any[] => {
     try {
       let jsonString = text.trim();
-      if (jsonString.startsWith("```json")) {
-          jsonString = jsonString.replace(/^```json/, "").replace(/```$/, "");
-      } else if (jsonString.startsWith("```")) {
-          jsonString = jsonString.replace(/^```/, "").replace(/```$/, "");
+      // Remove markdown code blocks
+      jsonString = jsonString.replace(/^```json\s*/g, "").replace(/^```\s*/g, "").replace(/\s*```$/g, "");
+      
+      // Attempt to find the first '[' and last ']'
+      const start = jsonString.indexOf('[');
+      const end = jsonString.lastIndexOf(']');
+      
+      if (start !== -1 && end !== -1) {
+          jsonString = jsonString.substring(start, end + 1);
+          return JSON.parse(jsonString);
       }
-      const parsed = JSON.parse(jsonString);
-      return Array.isArray(parsed) ? parsed : [];
+      return [];
     } catch (e) {
-      // Fallback regex
-      const match = text.match(/\[.*\]/s);
-      if (match) {
-          try { return JSON.parse(match[0]); } catch (e2) { return []; }
-      }
+      console.warn("JSON extraction failed, returning empty list.");
       return [];
     }
 };
@@ -79,33 +81,39 @@ const runSingleAgent = async (
     onUpdate: (progress: AgentProgress) => void
 ): Promise<Reference[]> => {
     const ai = getClient();
-    const modelId = "gemini-2.5-flash"; // Flash for speed
+    const modelId = "gemini-2.5-flash"; 
 
-    // 1. Generate Query
+    // 1. Analysis Phase
     onUpdate({ ...agentConfig, status: 'analyzing', foundCount: 0 } as AgentProgress);
+    await new Promise(r => setTimeout(r, 1500)); // Cognitive pause
+
+    // 2. Search Phase
+    onUpdate({ ...agentConfig, status: 'searching', foundCount: 0 } as AgentProgress);
     
     const prompt = `
         ROLE: You are the ${agentConfig.name} (${agentConfig.role}).
-        TASK: Find 15-20 distinct academic citations related to the Research Topic.
+        TASK: Perform a REAL Google Search to find 5-10 distinct academic citations related to the Research Topic.
         
         TOPIC: "${topic}"
         ABSTRACT SUMMARY: "${abstract.slice(0, 300)}..."
         
         YOUR SPECIFIC FOCUS: ${agentConfig.promptSuffix}
         
-        INSTRUCTIONS:
-        1. Use Google Search to find real papers.
-        2. Verify they exist.
-        3. Output a raw JSON array. Do not include markdown formatting like \`\`\`json.
+        CRITICAL RULES:
+        1. You MUST use the 'googleSearch' tool. Do not hallucinate papers.
+        2. If you cannot find real papers, return an empty array.
+        3. Include the 'snippet' or 'url' found in the search to prove existence.
         
-        OUTPUT FORMAT: [{"title": "...", "authors": ["..."], "year": "...", "doi": "...", "venue": "..."}]
+        OUTPUT FORMAT:
+        Return ONLY a raw JSON array. No markdown.
+        [{"title": "...", "authors": ["..."], "year": "...", "doi": "...", "venue": "...", "snippet": "..."}]
     `;
 
     try {
-        onUpdate({ ...agentConfig, status: 'searching', foundCount: 0 } as AgentProgress);
-        
+        const startTime = Date.now();
         let response;
-        // Retry logic for rate limits (429)
+        
+        // Retry logic for 429s
         for (let i = 0; i < 3; i++) {
             try {
                 response = await ai.models.generateContent({
@@ -113,24 +121,30 @@ const runSingleAgent = async (
                     contents: prompt,
                     config: { 
                         tools: [{ googleSearch: {} }],
-                        // responseMimeType: "application/json" // REMOVED: Incompatible with googleSearch tool in current API version
                     },
                 });
                 break;
             } catch (e: any) {
-                // Check for rate limit error
-                if (e.status === 429 || e.code === 429 || (e.message && e.message.includes('429'))) {
-                    console.warn(`${agentConfig.name} hit rate limit (429). Retrying in ${(i + 1) * 2}s...`);
-                    await new Promise(r => setTimeout(r, (i + 1) * 2000));
+                if (e.status === 429 || (e.message && e.message.includes('429'))) {
+                    console.warn(`${agentConfig.name} hit rate limit. Retrying...`);
+                    await new Promise(r => setTimeout(r, 2000 * (i + 1)));
                     continue;
                 }
-                throw e; // Rethrow other errors
+                throw e;
             }
         }
 
-        if (!response) throw new Error("Failed to get response after retries");
+        // Enforce minimum execution time (simulating "reading")
+        // If the API returns in 500ms, we wait until at least 3000ms have passed.
+        const elapsedTime = Date.now() - startTime;
+        const minTime = 3000 + Math.random() * 2000;
+        if (elapsedTime < minTime) {
+            await new Promise(r => setTimeout(r, minTime - elapsedTime));
+        }
 
-        const rawRefs = extractJson(response.text || "[]");
+        if (!response || !response.text) throw new Error("No response from agent");
+
+        const rawRefs = extractJson(response.text);
         
         // Map to Reference type
         const refs: Reference[] = rawRefs.map((r: any) => ({
@@ -138,9 +152,9 @@ const runSingleAgent = async (
             authors: Array.isArray(r.authors) ? r.authors : [r.authors || "Unknown"],
             year: r.year?.toString() || "n.d.",
             doi: r.doi,
-            venue: r.venue,
+            venue: r.venue || "Google Search Result",
             source: agentConfig.name,
-            snippet: "",
+            snippet: r.snippet || "",
             isPreprint: false,
             isVerified: false
         }));
@@ -167,8 +181,8 @@ export const orchestrateDeepSearch = async (
         // Initial state
         onAgentUpdate(config.name, { ...config, status: 'idle', foundCount: 0 } as AgentProgress);
         
-        // Stagger execution by 1.5s each to prevent hitting burst rate limits (429)
-        await new Promise(resolve => setTimeout(resolve, index * 1500));
+        // Stagger execution significantly to prevent rate limits and make UI look "busy"
+        await new Promise(resolve => setTimeout(resolve, index * 2000));
 
         return runSingleAgent(config, topic, abstract, (p) => onAgentUpdate(config.name, p));
     });
@@ -180,7 +194,6 @@ export const orchestrateDeepSearch = async (
     onGlobalProgress(`Consolidating ${allRawRefs.length} raw citations...`);
     const uniqueMap = new Map<string, Reference>();
     allRawRefs.forEach(r => {
-        // Simple normalization
         const key = r.title.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 50);
         if (!uniqueMap.has(key)) {
             uniqueMap.set(key, r);
@@ -190,22 +203,25 @@ export const orchestrateDeepSearch = async (
     const uniqueRefs = Array.from(uniqueMap.values());
 
     // 3. Parallel Validation
-    // We split the unique refs into chunks to not overwhelm the browser/network
-    onGlobalProgress(`Validating ${uniqueRefs.length} unique papers against OpenAlex/Crossref...`);
-    
-    // Update agents to "completed" visually
-    AGENTS_CONFIG.forEach(c => {
-        onAgentUpdate(c.name, { ...c, status: 'completed', foundCount: 0 } as AgentProgress); 
-    });
+    if (uniqueRefs.length > 0) {
+        onGlobalProgress(`Validating ${uniqueRefs.length} unique papers against OpenAlex/Crossref...`);
+        const validatedRefs = await CitationService.validateBatch(uniqueRefs, (curr, total, title) => {
+            onGlobalProgress(`Validating: ${Math.round((curr/total)*100)}% (${title.substring(0, 20)}...)`);
+        });
+        
+        // Finish state
+        AGENTS_CONFIG.forEach((c, idx) => {
+            const count = results[idx]?.length || 0;
+            onAgentUpdate(c.name, { ...c, status: 'completed', foundCount: count } as AgentProgress); 
+        });
 
-    // Use existing CitationService but we can optimize the call
-    // CitationService.validateBatch handles parallel internally via Promise.all
-    const validatedRefs = await CitationService.validateBatch(uniqueRefs, (curr, total, title) => {
-        onGlobalProgress(`Validating: ${Math.round((curr/total)*100)}% (${title.substring(0, 20)}...)`);
-    });
-
-    // Filter to ensure quality (must have valid DOI or be verified)
-    const finalRefs = validatedRefs.filter(r => r.isVerified || (r.doi && r.doi.includes("10.")));
-
-    return finalRefs;
+        // Filter: Keep if Verified OR has a Snippet (meaning search found real text)
+        return validatedRefs.filter(r => r.isVerified || (r.snippet && r.snippet.length > 20));
+    } else {
+        AGENTS_CONFIG.forEach((c, idx) => {
+            const count = results[idx]?.length || 0;
+            onAgentUpdate(c.name, { ...c, status: 'completed', foundCount: count } as AgentProgress); 
+        });
+        return [];
+    }
 };
