@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface LemurMascotProps {
@@ -6,25 +7,45 @@ interface LemurMascotProps {
 }
 
 export const LemurMascot: React.FC<LemurMascotProps> = ({ className = "w-64 h-64", variant = 'default' }) => {
+  // Artistic Settings
+  const outlineColor = "#000000";
+  const outlineWidth = "2.5"; 
+
   return (
-    <svg viewBox="0 0 200 200" className={className} xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 200 240" className={className} xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
       <defs>
-        <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#f1f5f9" />
-          <stop offset="100%" stopColor="#cbd5e1" />
+        {/* Fur Gradients */}
+        <linearGradient id="furGrey" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#cbd5e1" /> {/* Lighter Slate for that silver lemur look */}
+          <stop offset="50%" stopColor="#94a3b8" /> 
+          <stop offset="100%" stopColor="#64748b" /> 
         </linearGradient>
-        <linearGradient id="telescopeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#475569" />
-            <stop offset="50%" stopColor="#1e293b" />
-            <stop offset="100%" stopColor="#0f172a" />
+        
+        <radialGradient id="bellyWhite" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+            <stop offset="60%" stopColor="#ffffff" />
+            <stop offset="100%" stopColor="#e2e8f0" />
+        </radialGradient>
+
+        <radialGradient id="eyeGold" cx="50%" cy="50%" r="50%">
+            <stop offset="30%" stopColor="#f59e0b" /> {/* Bright Orange/Amber */}
+            <stop offset="90%" stopColor="#b45309" /> {/* Darker Orange edge */}
+        </radialGradient>
+
+        {/* Crown Gradients */}
+        <linearGradient id="crownLeaf" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#4ade80" />
+            <stop offset="100%" stopColor="#15803d" />
         </linearGradient>
-        <linearGradient id="lensGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#60a5fa" opacity="0.8" />
-            <stop offset="100%" stopColor="#93c5fd" opacity="0.4" />
+        <linearGradient id="crownFeather" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#f87171" />
+            <stop offset="50%" stopColor="#dc2626" />
+            <stop offset="100%" stopColor="#991b1b" />
         </linearGradient>
-        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
-          <feOffset dx="2" dy="4" result="offsetblur" />
+
+        {/* Filters */}
+        <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2" />
+          <feOffset dx="1" dy="2" result="offsetblur" />
           <feComponentTransfer>
             <feFuncA type="linear" slope="0.3" />
           </feComponentTransfer>
@@ -33,277 +54,264 @@ export const LemurMascot: React.FC<LemurMascotProps> = ({ className = "w-64 h-64
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
+
         <style>
           {`
-            @keyframes sway {
+            @keyframes royal-wave {
               0%, 100% { transform: rotate(0deg); }
-              50% { transform: rotate(4deg); }
+              50% { transform: rotate(5deg); }
             }
-            @keyframes bob {
-              0%, 100% { transform: translateY(0); }
-              50% { transform: translateY(-3px); }
+            @keyframes tail-wag {
+              0%, 100% { transform: rotate(-4deg); }
+              50% { transform: rotate(12deg); }
             }
-            @keyframes blink {
-              0%, 96%, 98% { transform: scaleY(1); }
-              97% { transform: scaleY(0.1); }
+            @keyframes crown-bounce {
+               0%, 100% { transform: translateY(0) rotate(0deg); }
+               50% { transform: translateY(-3px) rotate(2deg); }
             }
-            @keyframes tassel-swing {
-              0%, 100% { transform: rotate(-3deg); }
-              50% { transform: rotate(3deg); }
+            @keyframes eye-dart {
+               0%, 90% { transform: translate(0,0); }
+               92% { transform: translate(1px, 0); }
+               94% { transform: translate(-1px, 0); }
+               96% { transform: translate(0,0); }
             }
-            @keyframes telescope-scan {
-               0% { transform: rotate(-8deg); }
-               50% { transform: rotate(2deg); }
-               100% { transform: rotate(-8deg); }
+            @keyframes plead-pulse {
+               0%, 100% { transform: scale(1); }
+               50% { transform: scale(1.05); }
             }
-            @keyframes bucket-heavy {
-               0%, 100% { transform: translateY(0); }
-               50% { transform: translateY(2px); }
+            @keyframes blink-random {
+               0%, 98% { transform: scaleY(1); }
+               99% { transform: scaleY(0.1); }
+               100% { transform: scaleY(1); }
             }
-            @keyframes lens-glint {
-                0%, 100% { opacity: 0; transform: scale(0.5); }
-                50% { opacity: 1; transform: scale(1.2) rotate(45deg); }
-            }
-            @keyframes plead-tremble {
-                0%, 100% { transform: translateY(0); }
-                25% { transform: translateY(1px); }
-                75% { transform: translateY(-1px); }
-            }
-            @keyframes thinking-float {
-                0%, 100% { transform: translateY(0) rotate(0deg); }
-                50% { transform: translateY(-2px) rotate(1deg); }
-            }
-            .lemur-tail { transform-origin: 130px 140px; animation: sway 4s ease-in-out infinite; }
-            .lemur-head { animation: bob 5s ease-in-out infinite; }
-            .lemur-head-plead { animation: plead-tremble 3s ease-in-out infinite; }
-            .lemur-head-thinking { animation: thinking-float 6s ease-in-out infinite; }
-            .lemur-eye { transform-origin: center; animation: blink 4s infinite; }
-            .lemur-tassel { transform-origin: 138px 55px; animation: tassel-swing 3s ease-in-out infinite; }
-            .lemur-telescope { transform-origin: 100px 95px; animation: telescope-scan 6s ease-in-out infinite; }
-            .lemur-bucket { animation: bucket-heavy 2s ease-in-out infinite; }
-            .glint-star { transform-origin: 175px 88px; animation: lens-glint 3s infinite; }
+            .mascot-tail { transform-origin: 100px 180px; animation: tail-wag 3s ease-in-out infinite; }
+            .mascot-crown { transform-origin: 100px 70px; animation: crown-bounce 4s ease-in-out infinite; }
+            .mascot-pupil { animation: eye-dart 4s infinite; }
+            .mascot-eye-container { transform-origin: center; animation: blink-random 5s infinite; }
+            .mascot-plead { animation: plead-pulse 2s infinite; }
           `}
         </style>
       </defs>
 
-      {/* Tail Group - Black & White Rings */}
-      <g className="lemur-tail" filter="url(#shadow)">
-        {/* Base White Tail */}
-        <path 
-          d="M130 140 C 170 140, 195 100, 160 70 C 150 60, 140 70, 135 80" 
-          fill="none" 
-          stroke="#ffffff" 
-          strokeWidth="20" 
-          strokeLinecap="round" 
-        />
-        {/* Black Rings */}
-        <path 
-          d="M130 140 C 170 140, 195 100, 160 70 C 150 60, 140 70, 135 80" 
-          fill="none" 
-          stroke="#1e293b" 
-          strokeWidth="20" 
-          strokeLinecap="butt"
-          strokeDasharray="14 14"
-        />
+      {/* --- TAIL (Behind Body) --- */}
+      <g className="mascot-tail">
+         {/* Tail Outline & Base */}
+         <path 
+            d="M100 180 Q 160 180 170 120 Q 180 60 140 30 Q 120 20 100 40" 
+            fill="none" 
+            stroke={outlineColor} 
+            strokeWidth="40" 
+            strokeLinecap="round"
+         />
+         <path 
+            d="M100 180 Q 160 180 170 120 Q 180 60 140 30 Q 120 20 100 40" 
+            fill="none" 
+            stroke="#e2e8f0" 
+            strokeWidth="35" 
+            strokeLinecap="round"
+         />
+         {/* Sharp Black Rings (Pure Black for King Julien Look) */}
+         <path 
+            d="M100 180 Q 160 180 170 120 Q 180 60 140 30 Q 120 20 100 40" 
+            fill="none" 
+            stroke="#000000" 
+            strokeWidth="35" 
+            strokeLinecap="butt"
+            strokeDasharray="22 22"
+            strokeDashoffset="5"
+         />
       </g>
 
-      {/* Body */}
-      <ellipse cx="100" cy="150" rx="42" ry="48" fill="url(#bodyGrad)" filter="url(#shadow)" />
-      <ellipse cx="100" cy="150" rx="25" ry="35" fill="#ffffff" opacity="0.6" />
-
-      {/* Head Group */}
-      <g 
-        className={
-            variant === 'pleading' ? "lemur-head-plead" : 
-            variant === 'thinking' ? "lemur-head-thinking" : 
-            "lemur-head"
-        } 
-        transform="translate(0, -10)"
-      >
-        {/* Ears */}
-        <path d="M65 65 L55 40 L85 55 Z" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="2" strokeLinejoin="round" />
-        <path d="M135 65 L145 40 L115 55 Z" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="2" strokeLinejoin="round" />
-        
-        {/* Head Shape */}
-        <circle cx="100" cy="90" r="38" fill="#f8fafc" filter="url(#shadow)" />
-        
-        {/* Black Eye Mask */}
-        <path d="M82 82 Q 70 82 66 90 Q 66 102 82 102 Q 92 102 96 92 Z" fill="#1e293b" />
-        <path d="M118 82 Q 130 82 134 90 Q 134 102 118 102 Q 108 102 104 92 Z" fill="#1e293b" />
-
-        {/* Eyes Configuration */}
-        {variant === 'telescope' ? (
-           <g>
-              {/* Left Eye (Open/Observing) */}
-              <g className="lemur-eye">
-                  <circle cx="82" cy="92" r="4.5" fill="#fbbf24" />
-                  <circle cx="82" cy="92" r="2" fill="#000" />
-              </g>
-              {/* Right Eye (Squinted/Closed into telescope) */}
-              <path d="M114 94 Q 118 90 122 94" fill="none" stroke="#fbbf24" strokeWidth="2" />
-           </g>
-        ) : variant === 'pleading' ? (
-           <g>
-              {/* Pleading Eyes: Big Black Circles with multiple highlights */}
-               <g transform="translate(0, 2)">
-                  {/* Left */}
-                  <circle cx="82" cy="94" r="7" fill="#000" />
-                  <circle cx="79" cy="91" r="2.5" fill="#fff" />
-                  <circle cx="84" cy="96" r="1" fill="#fff" opacity="0.8" />
-                  
-                  {/* Right */}
-                  <circle cx="118" cy="94" r="7" fill="#000" />
-                  <circle cx="115" cy="91" r="2.5" fill="#fff" />
-                  <circle cx="120" cy="96" r="1" fill="#fff" opacity="0.8" />
-                  
-                  {/* Tiny eyebrows making sad face */}
-                  <path d="M75 80 Q 82 78 88 82" stroke="#cbd5e1" strokeWidth="2" fill="none" />
-                  <path d="M112 82 Q 118 78 125 80" stroke="#cbd5e1" strokeWidth="2" fill="none" />
-               </g>
-           </g>
-        ) : variant === 'thinking' ? (
-           <g>
-               {/* Thinking Eyes: Looking up and to the right, focused */}
-               <g className="lemur-eye">
-                  <circle cx="82" cy="92" r="4.5" fill="#fbbf24" />
-                  <circle cx="84" cy="90" r="2" fill="#000" />
-               </g>
-               <g className="lemur-eye">
-                  <circle cx="118" cy="92" r="4.5" fill="#fbbf24" />
-                  <circle cx="120" cy="90" r="2" fill="#000" />
-               </g>
-               
-               {/* Furrowed Brow (Concentration) */}
-               <path d="M75 82 Q 82 85 88 82" stroke="#cbd5e1" strokeWidth="2" fill="none" />
-               <path d="M112 82 Q 118 85 125 82" stroke="#cbd5e1" strokeWidth="2" fill="none" />
-           </g>
-        ) : (
-           <g>
-              <g className="lemur-eye">
-                <circle cx="82" cy="92" r="4.5" fill="#fbbf24" />
-                <circle cx="82" cy="92" r="2" fill="#000" />
-              </g>
-              <g className="lemur-eye">
-                <circle cx="118" cy="92" r="4.5" fill="#fbbf24" />
-                <circle cx="118" cy="92" r="2" fill="#000" />
-              </g>
-           </g>
-        )}
-
-        {/* Nose */}
-        <path d="M96 108 Q 100 111 104 108 L 100 113 Z" fill="#0f172a" />
-        
-        {/* Mouth */}
-        {variant === 'pleading' ? (
-             <path d="M96 118 Q 100 116 104 118" stroke="#1e293b" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-        ) : variant === 'thinking' ? (
-             <path d="M98 118 L 102 118" stroke="#1e293b" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-        ) : null}
-
-        {/* Graduation Cap */}
-        <path d="M60 55 L100 35 L140 55 L100 75 Z" fill="#1e293b" stroke="#334155" strokeWidth="1" />
-        <path d="M125 60 Q 130 75 100 75 Q 70 75 75 60" fill="none" stroke="#1e293b" strokeWidth="2" opacity="0.8" /> 
-        <g>
-           <circle cx="100" cy="55" r="2" fill="#fbbf24" />
-           <line x1="100" y1="55" x2="138" y2="55" stroke="#fbbf24" strokeWidth="1" />
-           <g className="lemur-tassel">
-             <line x1="138" y1="55" x2="138" y2="90" stroke="#fbbf24" strokeWidth="3" />
-             <circle cx="138" cy="90" r="3" fill="#fbbf24" />
-           </g>
-        </g>
+      {/* --- BODY --- */}
+      <g transform="translate(0, 20)">
+         {/* Main Torso - Slender */}
+         <path 
+            d="M80 120 Q 70 170 85 200 L 115 200 Q 130 170 120 120" 
+            fill="url(#furGrey)" 
+            stroke={outlineColor} 
+            strokeWidth={outlineWidth}
+            filter="url(#softShadow)"
+         />
+         {/* White Chest/Belly */}
+         <path 
+            d="M90 120 Q 85 160 92 180 L 108 180 Q 115 160 110 120" 
+            fill="url(#bellyWhite)" 
+            opacity="0.9"
+         />
       </g>
 
-      {/* VARIANT: TELESCOPE */}
-      {variant === 'telescope' && (
-         <g className="lemur-telescope">
-            {/* Left Arm (Back) */}
-            <path d="M85 145 Q 75 120 90 98" stroke="#cbd5e1" strokeWidth="12" fill="none" strokeLinecap="round" />
-            
-            {/* Left Hand (Back) */}
-            <g transform="rotate(-12 100 95)">
-                 <ellipse cx="98" cy="85" rx="3.5" ry="5.5" fill="#0f172a" transform="rotate(-10 98 85)" />
-                 <ellipse cx="106" cy="84" rx="3.5" ry="5.5" fill="#0f172a" transform="rotate(0 106 84)" />
-                 <ellipse cx="114" cy="85" rx="3.5" ry="5.5" fill="#0f172a" transform="rotate(10 114 85)" />
-            </g>
+      {/* --- HEAD GROUP --- */}
+      <g transform="translate(0, 10)">
+         
+         {/* Ears - Large and Triangular */}
+         <path d="M45 65 Q 35 30 65 45 L 70 80 Z" fill="#64748b" stroke={outlineColor} strokeWidth={outlineWidth} />
+         <path d="M48 62 Q 42 40 62 50" fill="#fbcfe8" /> {/* Inner Ear Pink */}
+         
+         <path d="M155 65 Q 165 30 135 45 L 130 80 Z" fill="#64748b" stroke={outlineColor} strokeWidth={outlineWidth} />
+         <path d="M152 62 Q 158 40 138 50" fill="#fbcfe8" />
 
-            {/* Telescope Body */}
-            <g transform="rotate(-12 100 95)">
-                <rect x="95" y="85" width="85" height="22" fill="url(#telescopeGrad)" rx="2" />
-                <rect x="90" y="88" width="8" height="16" fill="#1e293b" rx="1" />
-                <rect x="175" y="83" width="6" height="26" fill="#fbbf24" rx="1" />
-                <rect x="110" y="85" width="4" height="22" fill="#fbbf24" />
-                {/* Lens Glass */}
-                <ellipse cx="182" cy="96" rx="3" ry="11" fill="url(#lensGrad)" />
-            </g>
+         {/* Cheek Fluff (Royal Beard/Sideburns) */}
+         <path d="M60 100 L 40 110 L 62 120 Z" fill="#e2e8f0" stroke={outlineColor} strokeWidth="1" />
+         <path d="M140 100 L 160 110 L 138 120 Z" fill="#e2e8f0" stroke={outlineColor} strokeWidth="1" />
 
-            {/* Right Arm (Front) */}
-            <path d="M115 150 Q 135 140 145 115" stroke="#cbd5e1" strokeWidth="12" fill="none" strokeLinecap="round" />
-            
-            {/* Right Hand (Front) */}
-            <g transform="rotate(-12 100 95)">
-                <circle cx="145" cy="116" r="7.5" fill="#cbd5e1" />
-                <path d="M138 112 Q 136 122 146 125 Q 156 126 160 115 L 155 108 Z" fill="#0f172a" />
-                <ellipse cx="140" cy="118" rx="4.5" ry="6" fill="#1e293b" transform="rotate(-40 140 118)" />
-                <path d="M138 122 Q 142 128 150 126" stroke="#0f172a" strokeWidth="5" fill="none" strokeLinecap="round" />
-                <path d="M149 126 Q 151 126 152 124" stroke="#475569" strokeWidth="2" fill="none" opacity="0.8" />
-                <path d="M148 110 L 150 102" stroke="#0f172a" strokeWidth="5" strokeLinecap="round" />
-                <circle cx="150" cy="102" r="3" fill="#1e293b" />
-                <path d="M150 102 Q 152 96 146 95" fill="none" stroke="#0f172a" strokeWidth="4.5" strokeLinecap="round" />
-                <ellipse cx="146" cy="95" rx="1.5" ry="1" fill="#94a3b8" transform="rotate(-20 146 95)" />
-                <path d="M154 112 L 158 100" stroke="#0f172a" strokeWidth="5" strokeLinecap="round" />
-                <circle cx="158" cy="100" r="3" fill="#1e293b" />
-                <path d="M158 100 Q 162 92 154 90" fill="none" stroke="#0f172a" strokeWidth="4.5" strokeLinecap="round" />
-                <ellipse cx="154" cy="90" rx="1.5" ry="1" fill="#94a3b8" transform="rotate(-10 154 90)" />
-                <path d="M160 115 L 165 105" stroke="#0f172a" strokeWidth="5" strokeLinecap="round" />
-                <circle cx="165" cy="105" r="3" fill="#1e293b" />
-                <path d="M165 105 Q 169 98 163 96" fill="none" stroke="#0f172a" strokeWidth="4.5" strokeLinecap="round" />
-                <ellipse cx="163" cy="96" rx="1.5" ry="1" fill="#94a3b8" transform="rotate(0 163 96)" />
-            </g>
-            
-            <path className="glint-star" d="M182 85 L184 94 L193 96 L184 98 L182 107 L180 98 L171 96 L180 94 Z" fill="#ffffff" />
+         {/* Main Head Shape (Wide top, narrow chin) */}
+         <path 
+            d="M60 75 Q 100 50 140 75 Q 155 90 140 125 Q 100 155 60 125 Q 45 90 60 75" 
+            fill="#e2e8f0" 
+            stroke={outlineColor} 
+            strokeWidth={outlineWidth}
+            filter="url(#softShadow)"
+         />
+
+         {/* The "Mask" - Dark Grey/Black around eyes */}
+         <path d="M65 80 Q 55 95 70 110 Q 85 115 90 95 Q 90 75 65 80" fill="#1e293b" opacity="0.95" />
+         <path d="M135 80 Q 145 95 130 110 Q 115 115 110 95 Q 110 75 135 80" fill="#1e293b" opacity="0.95" />
+
+         {/* Snout/Muzzle - Pointier */}
+         <path d="M85 110 Q 100 105 115 110 Q 110 130 100 135 Q 90 130 85 110" fill="#ffffff" stroke={outlineColor} strokeWidth="1" />
+         
+         {/* Nose */}
+         <path d="M92 118 Q 100 116 108 118 L 100 124 Z" fill="#000000" />
+
+         {/* Mouth & Expressions */}
+         {variant === 'pleading' ? (
+             <path d="M94 128 Q 100 125 106 128" stroke={outlineColor} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+         ) : variant === 'thinking' ? (
+             <path d="M96 128 L 104 128" stroke={outlineColor} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+         ) : (
+             // KING JULIEN GRIN (Toothy and cheeky)
+             <g>
+               <path d="M88 126 Q 100 138 112 126 Q 100 120 88 126 Z" fill="#ffffff" stroke={outlineColor} strokeWidth="1" />
+               <path d="M88 126 Q 100 130 112 126" fill="none" stroke={outlineColor} strokeWidth="0.5" opacity="0.5" />
+             </g>
+         )}
+
+         {/* --- EYES --- */}
+         {variant === 'pleading' ? (
+             // PLEADING EYES (Huge, Wet, "Mort" Style)
+             <g className="mascot-plead">
+                 {/* Left */}
+                 <circle cx="76" cy="95" r="13" fill="#000" />
+                 <circle cx="76" cy="95" r="12" fill="url(#eyeGold)" />
+                 <circle cx="76" cy="95" r="9" fill="#000" />
+                 <circle cx="72" cy="89" r="4" fill="#fff" />
+                 <circle cx="80" cy="97" r="2" fill="#fff" opacity="0.7" />
+                 
+                 {/* Right */}
+                 <circle cx="124" cy="95" r="13" fill="#000" />
+                 <circle cx="124" cy="95" r="12" fill="url(#eyeGold)" />
+                 <circle cx="124" cy="95" r="9" fill="#000" />
+                 <circle cx="120" cy="89" r="4" fill="#fff" />
+                 <circle cx="128" cy="97" r="2" fill="#fff" opacity="0.7" />
+             </g>
+         ) : (
+             // KING JULIEN EYES (Crazy, Intense, Small Pupil)
+             <g className="mascot-eye-container">
+                 {/* Left */}
+                 <circle cx="76" cy="94" r="11" fill="#f59e0b" stroke="#000" strokeWidth="1.5" /> {/* Orange/Gold */}
+                 <circle cx="76" cy="94" r="9" fill="#fbbf24" /> {/* Inner bright yellow */}
+                 <g className="mascot-pupil">
+                    <circle cx="76" cy="94" r="2.5" fill="#000" />
+                    <circle cx="77" cy="93" r="0.8" fill="#fff" />
+                 </g>
+                 
+                 {/* Eyelid for expression */}
+                 {variant === 'thinking' && <path d="M65 88 Q 76 96 87 88" fill="none" stroke="#1e293b" strokeWidth="2" />}
+
+                 {/* Right */}
+                 <circle cx="124" cy="94" r="11" fill="#f59e0b" stroke="#000" strokeWidth="1.5" />
+                 <circle cx="124" cy="94" r="9" fill="#fbbf24" />
+                 {variant === 'telescope' ? (
+                    // Squinting right eye
+                    <path d="M113 94 Q 124 100 135 94" stroke="#000" strokeWidth="2.5" fill="none" />
+                 ) : (
+                    <g className="mascot-pupil">
+                        <circle cx="124" cy="94" r="2.5" fill="#000" />
+                        <circle cx="125" cy="93" r="0.8" fill="#fff" />
+                    </g>
+                 )}
+             </g>
+         )}
+
+         {/* --- THE CROWN (The King Element - Taller and Grander) --- */}
+         <g className="mascot-crown" transform="translate(0, -10)">
+             {/* Base Leaves - Wider */}
+             <path d="M60 65 L 65 35 L 85 62 Z" fill="url(#crownLeaf)" stroke={outlineColor} strokeWidth="1" />
+             <path d="M140 65 L 135 35 L 115 62 Z" fill="url(#crownLeaf)" stroke={outlineColor} strokeWidth="1" />
+             <path d="M80 62 L 100 20 L 120 62 Z" fill="url(#crownLeaf)" stroke={outlineColor} strokeWidth="1" />
+             
+             {/* Tall Central Feather/Structure - The iconic King Julien height */}
+             <path d="M100 60 L 105 5 L 95 5 Z" fill="#facc15" stroke={outlineColor} strokeWidth="1" /> {/* Stick */}
+             <path d="M100 60 Q 125 30 100 0 Q 75 30 100 60" fill="url(#crownFeather)" stroke={outlineColor} strokeWidth="1" opacity="0.9" />
+             
+             {/* Gem */}
+             <circle cx="100" cy="62" r="6" fill="#f59e0b" stroke={outlineColor} strokeWidth="1.5" />
+             <circle cx="102" cy="60" r="2" fill="#fff" opacity="0.6" />
          </g>
-      )}
 
-      {/* VARIANT: BUCKET */}
-      {variant === 'bucket' && (
-          <g className="lemur-bucket">
-              <path d="M70 140 L 80 185 L 140 185 L 150 140 Z" fill="#3b82f6" stroke="#1e3a8a" strokeWidth="2" />
-              <ellipse cx="110" cy="140" rx="40" ry="8" fill="#60a5fa" stroke="#1e3a8a" strokeWidth="2" />
-              <ellipse cx="110" cy="140" rx="35" ry="6" fill="#1e3a8a" opacity="0.3" />
-              <path d="M70 140 Q 110 100 150 140" fill="none" stroke="#94a3b8" strokeWidth="4" />
-              <rect x="90" y="125" width="20" height="25" fill="#fff" stroke="#cbd5e1" transform="rotate(-15 100 140)" />
-              <rect x="110" y="120" width="20" height="25" fill="#fff" stroke="#cbd5e1" transform="rotate(10 110 140)" />
-          </g>
-      )}
+      </g>
 
-      {/* DEFAULT ARMS / BOOK / THINKING */}
-      {(variant === 'default' || variant === 'thinking') && (
-        <>
-            <rect x="65" y="155" width="70" height="45" rx="3" fill="#4338ca" transform="rotate(-6 100 180)" filter="url(#shadow)" />
-            <path d="M70 160 L130 160" stroke="#818cf8" strokeWidth="2" transform="rotate(-6 100 180)" />
-            <rect x="90" y="165" width="20" height="25" rx="1" fill="#e0e7ff" transform="rotate(-6 100 180)" />
-            
-            <path d="M75 145 Q 65 160 80 165" fill="none" stroke="#cbd5e1" strokeWidth="10" strokeLinecap="round" />
-            <path d="M125 145 Q 135 160 120 165" fill="none" stroke="#cbd5e1" strokeWidth="10" strokeLinecap="round" />
-        </>
-      )}
+      {/* --- ARMS & ACCESSORIES --- */}
+      <g transform="translate(0, 20)">
+          
+          {/* TELESCOPE MODE */}
+          {variant === 'telescope' && (
+             <g>
+                {/* Telescope Object */}
+                <rect x="90" y="100" width="80" height="15" fill="#475569" transform="rotate(-15 90 100)" stroke={outlineColor} strokeWidth="1" />
+                <rect x="160" y="80" width="10" height="20" fill="#f59e0b" transform="rotate(-15 160 80)" stroke={outlineColor} strokeWidth="1" />
+                
+                {/* Hands holding it - BLACK HANDS */}
+                <circle cx="95" cy="115" r="6" fill="#1a1a1a" stroke={outlineColor} strokeWidth="1" />
+                <circle cx="130" cy="105" r="6" fill="#1a1a1a" stroke={outlineColor} strokeWidth="1" />
+             </g>
+          )}
 
-       {/* PLEADING HANDS */}
-       {variant === 'pleading' && (
-        <>
-           <path d="M80 150 Q 100 160 100 140" fill="none" stroke="#cbd5e1" strokeWidth="10" strokeLinecap="round" />
-           <path d="M120 150 Q 100 160 100 140" fill="none" stroke="#cbd5e1" strokeWidth="10" strokeLinecap="round" />
-           <circle cx="100" cy="140" r="8" fill="#1e293b" />
-        </>
-       )}
+          {/* THINKING MODE */}
+          {variant === 'thinking' && (
+             <g>
+                <path d="M80 130 Q 70 150 90 145" stroke={outlineColor} strokeWidth="8" fill="none" strokeLinecap="round" />
+                <path d="M80 130 Q 70 150 90 145" stroke="#94a3b8" strokeWidth="6" fill="none" strokeLinecap="round" />
+                {/* Black Hand */}
+                <circle cx="92" cy="142" r="5" fill="#1a1a1a" stroke={outlineColor} strokeWidth="1" />
+             </g>
+          )}
 
-      {/* Arms holding Bucket */}
-      {variant === 'bucket' && (
-        <>
-           <path d="M75 145 Q 70 150 70 140" fill="none" stroke="#cbd5e1" strokeWidth="10" strokeLinecap="round" />
-           <path d="M125 145 Q 150 150 150 140" fill="none" stroke="#cbd5e1" strokeWidth="10" strokeLinecap="round" />
-        </>
-      )}
+          {/* DEFAULT / PLEADING (Hands on hips/chest) */}
+          {(variant === 'default' || variant === 'pleading') && (
+             <g>
+                {/* Left Arm */}
+                <path d="M75 130 Q 60 150 75 160" fill="none" stroke={outlineColor} strokeWidth="8" strokeLinecap="round" />
+                <path d="M75 130 Q 60 150 75 160" fill="none" stroke="#94a3b8" strokeWidth="6" strokeLinecap="round" />
+                <circle cx="75" cy="160" r="5" fill="#1a1a1a" stroke={outlineColor} strokeWidth="1" />
+
+                {/* Right Arm */}
+                <path d="M125 130 Q 140 150 125 160" fill="none" stroke={outlineColor} strokeWidth="8" strokeLinecap="round" />
+                <path d="M125 130 Q 140 150 125 160" fill="none" stroke="#94a3b8" strokeWidth="6" strokeLinecap="round" />
+                <circle cx="125" cy="160" r="5" fill="#1a1a1a" stroke={outlineColor} strokeWidth="1" />
+             </g>
+          )}
+
+          {/* BUCKET MODE (Holding papers) */}
+          {variant === 'bucket' && (
+             <g>
+                 <rect x="80" y="140" width="40" height="30" fill="#3b82f6" stroke={outlineColor} strokeWidth="1.5" />
+                 <path d="M80 140 L 90 170 L 110 170 L 120 140 Z" fill="#2563eb" opacity="0.5" />
+                 <rect x="90" y="130" width="10" height="20" fill="#fff" stroke="#cbd5e1" transform="rotate(-10 90 140)" />
+                 <rect x="100" y="130" width="10" height="20" fill="#fff" stroke="#cbd5e1" transform="rotate(10 100 140)" />
+                 
+                 {/* Hands holding bucket - BLACK HANDS */}
+                 <circle cx="80" cy="145" r="5" fill="#1a1a1a" stroke={outlineColor} />
+                 <circle cx="120" cy="145" r="5" fill="#1a1a1a" stroke={outlineColor} />
+             </g>
+          )}
+      </g>
+
+      {/* Feet - BLACK FEET */}
+      <g transform="translate(0, 20)">
+         <ellipse cx="85" cy="200" rx="9" ry="5" fill="#1a1a1a" />
+         <ellipse cx="115" cy="200" rx="9" ry="5" fill="#1a1a1a" />
+      </g>
 
     </svg>
   );
