@@ -31,6 +31,9 @@ export interface Reference {
   abstract?: string;
   isPreprint: boolean;
   isVerified: boolean;
+  citationKey?: string; // Added for drafting
+  bibtex?: string; // Auto-fetched BibTeX
+  fieldsOfStudy?: string[]; // Auto-fetched fields
 }
 
 export interface MethodologyOption {
@@ -48,6 +51,15 @@ export interface LatexTemplate {
   classFile: string;
 }
 
+export interface AuthorMetadata {
+  fullName: string;
+  affiliation: string;
+  department: string;
+  email: string;
+  orcid?: string;
+  funding?: string;
+}
+
 export interface ResearchState {
   domain: string;
   selectedTopic: ResearchTopic | null;
@@ -57,4 +69,5 @@ export interface ResearchState {
   selectedTemplate: LatexTemplate | null;
   generatedLatex: string;
   logs: string[];
+  authorMetadata?: AuthorMetadata;
 }

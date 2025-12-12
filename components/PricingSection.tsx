@@ -77,7 +77,7 @@ export const PricingSection: React.FC = () => {
   ];
 
   return (
-    <section id="pricing" className="py-24 bg-white text-slate-900 border-t border-slate-200 relative overflow-hidden">
+    <section id="pricing" className="py-24 bg-slate-50 text-slate-900 border-t border-slate-200 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center mb-16">
           <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-slate-900">Fair Pricing for Every Scholar</h2>
@@ -86,14 +86,14 @@ export const PricingSection: React.FC = () => {
           </p>
         </div>
 
-        {/* Mobile Mascot (Smaller version centered ABOVE grid) */}
+        {/* Mobile Mascot */}
         <div className="lg:hidden mb-12 flex justify-center">
           <div className="relative w-32 h-32">
-             <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-white border-2 border-slate-900 p-2.5 rounded-xl shadow-lg w-40 text-center z-10 transition-all duration-300">
-                <p className="text-[10px] font-bold text-slate-900 italic leading-tight">
+             <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-white border border-slate-200 p-2.5 rounded-xl shadow-lg w-40 text-center z-10 transition-all duration-300">
+                <p className="text-[10px] font-bold text-slate-700 italic leading-tight">
                    "{currentThought}"
                 </p>
-                <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-b-2 border-r-2 border-slate-900 transform rotate-45"></div>
+                <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-b border-r border-slate-200 transform rotate-45"></div>
              </div>
              <LemurMascot variant="pleading" className="w-full h-full" />
           </div>
@@ -106,19 +106,19 @@ export const PricingSection: React.FC = () => {
               className={`
                 relative flex flex-col p-6 rounded-2xl border transition-all duration-300
                 ${plan.highlight 
-                   ? 'bg-white border-indigo-600 shadow-xl shadow-indigo-100 scale-105 z-10' 
+                   ? 'bg-white border-indigo-200 shadow-xl scale-105 z-10 ring-4 ring-indigo-50' 
                    : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-lg'
                 }
-                ${plan.isSub ? 'border-amber-400 bg-amber-50/30' : ''}
+                ${plan.isSub ? 'border-amber-200 bg-amber-50/30' : ''}
               `}
             >
               {plan.highlight && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide shadow-sm">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide shadow-md">
                   Best Value
                 </div>
               )}
               {plan.isSub && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-1 shadow-sm">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-1 shadow-md">
                   <Star className="w-3 h-3 fill-current" /> Ultimate
                 </div>
               )}
@@ -147,10 +147,10 @@ export const PricingSection: React.FC = () => {
               <div className="mt-auto">
                 <button 
                   className={`
-                    w-full py-2.5 rounded-lg text-sm font-semibold transition-all
+                    w-full py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm
                     ${plan.highlight || plan.isSub
-                       ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200' 
-                       : 'bg-slate-900 hover:bg-slate-800 text-white'
+                       ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200' 
+                       : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
                     }
                   `}
                 >
@@ -163,25 +163,16 @@ export const PricingSection: React.FC = () => {
           {/* Floating Pleading Mascot (Desktop) */}
           <div className="hidden lg:block absolute -right-24 bottom-10 z-20 hover:scale-105 transition-transform duration-300">
               <div className="relative w-48 h-48">
-                 {/* Speech Bubble - Tiny, lower, closer to head */}
-                 <div className="absolute top-2 -left-6 bg-white border-2 border-slate-900 p-2 rounded-xl rounded-br-none shadow-xl w-32 animate-bounce-slow transition-all duration-500 z-30">
-                    <p className="text-[9px] font-bold text-slate-900 italic leading-tight">
+                 <div className="absolute top-2 -left-6 bg-white border border-slate-200 p-2 rounded-xl rounded-br-none shadow-xl w-32 animate-bounce-slow transition-all duration-500 z-30">
+                    <p className="text-[9px] font-bold text-slate-700 italic leading-tight">
                        "{currentThought}"
                     </p>
-                    {/* Tail */}
-                    <div className="absolute -bottom-1.5 right-2 w-2.5 h-2.5 bg-white border-b-2 border-r-2 border-slate-900 transform rotate-45"></div>
+                    <div className="absolute -bottom-1.5 right-2 w-2.5 h-2.5 bg-white border-b border-r border-slate-200 transform rotate-45"></div>
                  </div>
                  
-                 <LemurMascot variant="pleading" className="w-full h-full drop-shadow-xl" />
+                 <LemurMascot variant="pleading" className="w-full h-full drop-shadow-2xl" />
               </div>
           </div>
-        </div>
-        
-        <div className="mt-12 text-center">
-            <p className="text-sm text-slate-500">
-                All plans include access to Multi-Agent Search, Gap Analysis, and LaTeX Export. <br className="hidden md:inline"/>
-                Secure payment processing via Stripe.
-            </p>
         </div>
       </div>
     </section>

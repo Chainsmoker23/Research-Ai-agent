@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowRight, BookOpen, Sparkles, FileText, Cpu, Network, Lock, CheckCircle2, Activity, Globe, Search, Award, Zap, MousePointer2, Radar, Clock, Target, ShieldAlert } from 'lucide-react';
+import { ArrowRight, Sparkles, FileText, Cpu, Network, CheckCircle2, Activity, Globe, Search, Award, Zap, Radar, Clock, Target, ShieldAlert, XCircle, FlaskConical, Binary, Sigma, BrainCircuit, Terminal, FileCode, Eraser, Scale, ChevronRight, Play, LayoutTemplate, SearchCheck, BarChart3, TestTube2, Download, ExternalLink } from 'lucide-react';
 import { LemurMascot } from './LemurMascot';
 import { PricingSection } from './PricingSection';
 
@@ -16,20 +16,79 @@ const ROTATING_DOMAINS = [
   "Material Science"
 ];
 
-const RECENT_ACTIVITIES = [
-  "Verified 15 papers for a user in Zurich",
-  "Drafting manuscript on Quantum Error Correction",
-  "Analyzing citation gaps in Oncology",
-  "Synthesizing new methodology for NLP",
-  "Cross-referencing IEEE Xplore results"
-];
-
 const BREAKTHROUGHS = [
     { title: "Optimizing Transformer Attention Heads for Sparse Code", category: "AI/ML", novelty: 94 },
     { title: "Perovskite Solar Cells: Stability at 85°C", category: "Materials", novelty: 89 },
     { title: "CRISPR-Cas9 Off-Target Detection via GNNs", category: "BioTech", novelty: 91 },
     { title: "Zero-Knowledge Proofs for Decentralized Identity", category: "Crypto", novelty: 88 },
     { title: "Micro-plastic Filtration using Graphene Oxide", category: "Env. Sci", novelty: 92 },
+];
+
+const METHODOLOGIES = [
+    {
+        id: "dsr",
+        title: "Design Science Research",
+        icon: <LayoutTemplate className="w-6 h-6 text-indigo-600" />,
+        desc: "Iterative artifact generation. The agent defines the problem, builds a theoretical artifact (algorithm/framework), and simulates evaluation metrics.",
+        tags: ["Artifact Creation", "Heuristic Eval", "CS & Engineering"]
+    },
+    {
+        id: "slr",
+        title: "Systematic Literature Review",
+        icon: <SearchCheck className="w-6 h-6 text-emerald-600" />,
+        desc: "Strict PRISMA-compliant protocol. We aggregate 200+ sources, apply exclusion criteria, and synthesize themes via thematic analysis.",
+        tags: ["PRISMA", "Meta-Analysis", "All Fields"]
+    },
+    {
+        id: "emp",
+        title: "Quantitative Empirical Study",
+        icon: <BarChart3 className="w-6 h-6 text-amber-600" />,
+        desc: "Statistical hypothesis testing. The agent generates synthetic datasets based on literature parameters and runs regression/ANOVA models.",
+        tags: ["Statistical Modeling", "Hypothesis Testing", "Social Sci"]
+    },
+    {
+        id: "sim",
+        title: "Simulation & Modeling",
+        icon: <TestTube2 className="w-6 h-6 text-rose-600" />,
+        desc: "Mathematical modeling of physical systems. We use differential equations and Monte Carlo simulations to predict system behavior.",
+        tags: ["Physics", "Economics", "Theoretical Bio"]
+    }
+];
+
+const SHOWCASE_PAPERS = [
+    {
+        id: 1,
+        title: "Attention is Not All You Need: Sparse Activations in Vision Transformers",
+        author: "ScholarAgent v2.1",
+        journal: "Submitted to CVPR 2025",
+        field: "Computer Vision",
+        abstract: "While Vision Transformers (ViTs) have achieved state-of-the-art results, their quadratic complexity limits scalability. This paper proposes 'SparseViT', a novel architecture introducing a dynamic token pruning mechanism based on attention scores. We demonstrate a 40% reduction in FLOPs with negligible accuracy loss on ImageNet-1K. Our theoretical analysis proves that high-frequency components in early layers are redundant.",
+        citations: 0,
+        latexClass: "IEEEtran",
+        color: "indigo"
+    },
+    {
+        id: 2,
+        title: "Thermodynamic Stability of Lead-Free Perovskites: A DFT Study",
+        author: "ScholarAgent v2.1",
+        journal: "Journal of Materials Chemistry A",
+        field: "Materials Science",
+        abstract: "Toxicity remains a barrier for commercializing perovskite solar cells. We conduct a systematic Density Functional Theory (DFT) investigation into Sn-based perovskites doped with Ge. Our simulation results indicate that Ge-doping increases the activation energy for degradation by 0.4 eV, suggesting significantly enhanced thermal stability. We propose a new lattice structure that minimizes strain.",
+        citations: 0,
+        latexClass: "revtex4-2",
+        color: "emerald"
+    },
+    {
+        id: 3,
+        title: "Algorithmic Bias in Large Language Model Hiring Pipelines",
+        author: "ScholarAgent v2.1",
+        journal: "ACM CHI 2025",
+        field: "Social Computing",
+        abstract: "Automated hiring systems are increasingly powered by LLMs. Through a mixed-methods audit of three open-source hiring agents, we reveal a statistically significant preference for candidates with Western-sounding names (p < 0.001) despite identical qualifications. We frame this within Value Sensitive Design (VSD) and propose a 'Blind-Token' intervention framework.",
+        citations: 0,
+        latexClass: "acmart",
+        color: "amber"
+    }
 ];
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
@@ -39,12 +98,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [cursorVisible, setCursorVisible] = useState(true);
 
-  // Live Ticker State
-  const [activityIndex, setActivityIndex] = useState(0);
+  // Showcase State
+  const [activePaperIndex, setActivePaperIndex] = useState(0);
 
-  // Stats Counter State
-  const [papersAnalyzed, setPapersAnalyzed] = useState(1450230);
-  
   // Parallax Mouse State
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const heroRef = useRef<HTMLDivElement>(null);
@@ -52,10 +108,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
   // Typing Effect Logic
   useEffect(() => {
     const currentDomain = ROTATING_DOMAINS[domainIndex];
-    const typeSpeed = isDeleting ? 50 : 100;
+    const typeSpeed = isDeleting ? 50 : 80;
     
     if (!isDeleting && displayText === currentDomain) {
-       setTimeout(() => setIsDeleting(true), 2000); // Pause at full word
+       setTimeout(() => setIsDeleting(true), 2500);
        return;
     }
     
@@ -75,26 +131,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
     return () => clearTimeout(timer);
   }, [displayText, isDeleting, domainIndex]);
 
-  // Cursor Blink
   useEffect(() => {
     const timer = setInterval(() => setCursorVisible(v => !v), 530);
     return () => clearInterval(timer);
-  }, []);
-
-  // Activity Ticker Logic
-  useEffect(() => {
-    const timer = setInterval(() => {
-        setActivityIndex(prev => (prev + 1) % RECENT_ACTIVITIES.length);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // Fake Live Stats Counter
-  useEffect(() => {
-      const timer = setInterval(() => {
-          setPapersAnalyzed(prev => prev + Math.floor(Math.random() * 3));
-      }, 2000);
-      return () => clearInterval(timer);
   }, []);
 
   // Parallax Logic
@@ -102,16 +141,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
       if (!heroRef.current) return;
       const { clientX, clientY } = e;
       const { innerWidth, innerHeight } = window;
-      
-      // Calculate percentage from center (-1 to 1)
-      const x = (clientX / innerWidth) * 2 - 1;
-      const y = (clientY / innerHeight) * 2 - 1;
-      
-      setMousePos({ x, y });
+      setMousePos({ 
+          x: (clientX / innerWidth) * 2 - 1, 
+          y: (clientY / innerHeight) * 2 - 1 
+      });
   };
 
   return (
-    <div className="w-full animate-fade-in font-sans overflow-x-hidden">
+    <div className="w-full font-sans overflow-x-hidden bg-slate-50 text-slate-900 selection:bg-indigo-100 selection:text-indigo-900">
       <style>{`
         @keyframes blob {
           0% { transform: translate(0px, 0px) scale(1); }
@@ -119,181 +156,141 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
           66% { transform: translate(-20px, 20px) scale(0.9); }
           100% { transform: translate(0px, 0px) scale(1); }
         }
-        .animate-blob {
-          animation: blob 10s infinite;
+        .animate-blob { animation: blob 15s infinite alternate; }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+        
+        @keyframes scan-radar {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
-        .animation-delay-2000 {
-          animation-delay: 2s;
+        .animate-scan-radar { animation: scan-radar 4s linear infinite; }
+        
+        @keyframes float-y {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
         }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-20px); }
-        }
-        @keyframes float-delayed {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-15px); }
-        }
-        .animate-float {
-            animation: float 6s ease-in-out infinite;
-        }
-        .animate-float-slow {
-            animation: float 8s ease-in-out infinite;
-        }
-        .animate-float-delayed {
-            animation: float-delayed 7s ease-in-out infinite 1s;
-        }
-        .animate-ping-slow {
-            animation: ping 3s cubic-bezier(0, 0, 0.2, 1) infinite;
-        }
-        .perspective-1000 {
-            perspective: 1000px;
-        }
+        .animate-float-y { animation: float-y 6s ease-in-out infinite; }
+
         @keyframes marquee {
             0% { transform: translateX(0); }
             100% { transform: translateX(-50%); }
         }
-        .animate-marquee {
-            animation: marquee 40s linear infinite;
+        .animate-marquee { animation: marquee 40s linear infinite; }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
         }
-        .tilt-card {
-            transition: transform 0.1s ease-out;
+        
+        .grid-bg {
+            background-image: linear-gradient(rgba(99, 102, 241, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(99, 102, 241, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
         }
-        .tilt-card:hover {
-            transform: perspective(1000px) rotateX(var(--rotateX)) rotateY(var(--rotateY)) scale(1.02);
-            z-index: 10;
-        }
-        @keyframes scan-beam {
-            0% { top: 0%; opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { top: 100%; opacity: 0; }
-        }
-        .animate-scan {
-            animation: scan-beam 3s linear infinite;
-        }
-        @keyframes pulse-ring {
-            0% { transform: scale(0.8); opacity: 0.5; }
-            100% { transform: scale(2.5); opacity: 0; }
-        }
-        .animate-pulse-ring {
-            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+
+        .text-glow {
+            text-shadow: 0 0 40px rgba(255, 255, 255, 0.8);
         }
       `}</style>
       
-      {/* Hero Section */}
+      {/* GLOBAL ATMOSPHERE */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+         {/* Pastel Gradients */}
+         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-200/40 rounded-full blur-[120px] animate-blob" />
+         <div className="absolute top-[40%] right-[-10%] w-[40%] h-[40%] bg-purple-200/40 rounded-full blur-[120px] animate-blob animation-delay-2000" />
+         <div className="absolute bottom-[-10%] left-[20%] w-[40%] h-[40%] bg-blue-200/40 rounded-full blur-[120px] animate-blob animation-delay-4000" />
+      </div>
+
+      {/* HERO SECTION */}
       <section 
         ref={heroRef}
         onMouseMove={handleMouseMove}
-        className="relative overflow-hidden pt-12 pb-20 lg:pt-24 lg:pb-32 bg-slate-50 min-h-[90vh] flex items-center"
+        className="relative pt-24 pb-20 lg:pt-36 lg:pb-32 min-h-screen flex items-center overflow-hidden"
       >
-        
-        {/* Dynamic Background Pattern */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-             style={{ 
-                 backgroundImage: `radial-gradient(#4f46e5 1px, transparent 1px)`, 
-                 backgroundSize: '32px 32px',
-                 transform: `translate(${mousePos.x * 10}px, ${mousePos.y * 10}px)`
-             }}>
-        </div>
-
-        {/* Floating Abstract Symbols - Parallax Layer Back */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none select-none transition-transform duration-100 ease-out"
-             style={{ transform: `translate(${mousePos.x * -20}px, ${mousePos.y * -20}px)` }}>
-            <div className="absolute top-[15%] left-[5%] text-slate-200 text-6xl font-serif animate-float-slow opacity-60">∫</div>
-            <div className="absolute top-[40%] right-[10%] text-slate-200 text-4xl font-serif animate-float-delayed opacity-60">∑</div>
-            <div className="absolute bottom-[20%] left-[15%] text-slate-200 text-5xl font-mono animate-float-slow opacity-40">π</div>
-            <div className="absolute top-[10%] right-[30%] text-slate-200 text-2xl font-mono animate-ping-slow opacity-30">{`{}`}</div>
-            <div className="absolute bottom-[30%] right-[5%] w-24 h-24 border-4 border-slate-100 rounded-full animate-float-delayed opacity-40"></div>
-            <div className="absolute top-[60%] left-[2%] w-16 h-16 bg-indigo-50 rounded-lg rotate-12 animate-float-slow opacity-50"></div>
-        </div>
+        <div className="absolute inset-0 grid-bg pointer-events-none [mask-image:linear-gradient(to_bottom,black,transparent)]"></div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             
-            {/* Hero Content */}
-            <div className="text-left space-y-8 relative transition-transform duration-100 ease-out"
-                 style={{ transform: `translate(${mousePos.x * 5}px, ${mousePos.y * 5}px)` }}>
-              
-              {/* Live Badge */}
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-full text-xs font-medium text-slate-600 shadow-sm animate-fade-in-up mb-2 hover:scale-105 transition-transform cursor-default">
+            {/* Typography */}
+            <div className="space-y-8 relative" style={{ transform: `translate(${mousePos.x * -10}px, ${mousePos.y * -10}px)` }}>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 text-xs font-medium text-slate-600 shadow-sm animate-fade-in-up">
                  <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                 </span>
-                <span className="truncate max-w-[200px] sm:max-w-none transition-all duration-500">
-                    {RECENT_ACTIVITIES[activityIndex]}
-                </span>
+                <span>Version 2.0 Now Live: Reasoning Engine Active</span>
               </div>
               
-              <h1 className="text-5xl lg:text-7xl font-bold tracking-tight text-slate-900 leading-[1.1]">
-                Your AI Co-Author for <br/>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
-                    {displayText}
+              <h1 className="text-5xl lg:text-8xl font-bold tracking-tight text-slate-900 leading-[1.1]">
+                Research <br/>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 animate-gradient-x">
+                   Autonomous
                 </span>
-                <span className={`${cursorVisible ? 'opacity-100' : 'opacity-0'} text-indigo-600 transition-opacity duration-100`}>|</span>
               </h1>
               
-              <p className="text-xl text-slate-600 leading-relaxed max-w-2xl">
-                Meet <strong>Scholar Lemur</strong>. The autonomous agent that conducts rigorous systematic reviews, identifies verified research gaps, and drafts LaTeX manuscripts while you sleep.
+              <div className="text-2xl md:text-3xl font-light text-slate-500 h-20">
+                <span>Generating </span>
+                <span className="text-slate-900 font-medium border-b-2 border-indigo-500 pb-1">{displayText}</span>
+                <span className={`${cursorVisible ? 'opacity-100' : 'opacity-0'} text-indigo-500`}>_</span>
+              </div>
+
+              <p className="text-lg text-slate-600 max-w-xl leading-relaxed">
+                 The world's first agentic workflow for academic publishing. From systematic review to LaTeX manuscript in minutes, powered by <strong className="text-slate-900">Gemini 3.0 Pro</strong> reasoning chains.
               </p>
               
-              <div className="flex flex-col sm:flex-row items-start gap-4 pt-4">
+              <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
                 <button 
                   onClick={onStart}
-                  className="group relative inline-flex h-14 items-center justify-center overflow-hidden rounded-2xl bg-slate-900 px-8 font-medium text-white transition-all duration-300 hover:bg-slate-800 hover:shadow-2xl hover:shadow-indigo-500/20 hover:-translate-y-1 w-full sm:w-auto"
+                  className="group relative inline-flex h-14 items-center justify-center overflow-hidden rounded-full bg-slate-900 px-8 font-bold text-white transition-all duration-300 hover:bg-slate-800 hover:shadow-2xl hover:scale-105 w-full sm:w-auto shadow-indigo-200"
                 >
-                  <span className="mr-2 text-lg">Start Research Project</span>
+                  <span className="mr-2 text-lg">Initialize Agent</span>
                   <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                  <div className="absolute inset-0 -z-10 bg-gradient-to-r from-indigo-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </button>
                 
-                <div className="flex flex-col justify-center px-4 py-1">
-                   <span className="text-2xl font-bold text-slate-900 tabular-nums">
-                     {papersAnalyzed.toLocaleString()}
-                   </span>
-                   <span className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Papers Analyzed</span>
-                </div>
+                <button className="flex items-center gap-3 px-8 py-4 rounded-full bg-white border border-slate-200 hover:border-indigo-300 text-slate-700 hover:text-indigo-600 transition-colors w-full sm:w-auto justify-center shadow-sm hover:shadow-md">
+                   <Play className="w-5 h-5 fill-current" />
+                   <span className="font-medium text-sm">Watch Demo</span>
+                </button>
               </div>
             </div>
 
-            {/* Hero Illustration / Mascot - Parallax Layer Front */}
-            <div className="relative flex justify-center lg:justify-end perspective-1000 transition-transform duration-100 ease-out"
-                 style={{ transform: `translate(${mousePos.x * -15}px, ${mousePos.y * -15}px)` }}>
+            {/* Visual: Holographic Lemur */}
+            <div className="relative flex justify-center lg:justify-end perspective-1000" style={{ transform: `translate(${mousePos.x * 10}px, ${mousePos.y * 10}px)` }}>
+               {/* Glowing Orb Backdrop */}
+               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] bg-gradient-to-tr from-indigo-300/30 to-purple-300/30 rounded-full blur-[60px] sm:blur-[80px] animate-pulse"></div>
                
-               {/* Decorative Blobs */}
-               <div className="absolute top-0 right-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-               <div className="absolute bottom-0 left-10 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
-               <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-amber-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
-               
-               {/* Mascot Container */}
-               <div className="relative z-10 transform hover:scale-105 transition-transform duration-500 cursor-pointer group">
-                  <LemurMascot className="w-80 h-80 lg:w-[480px] lg:h-[480px] drop-shadow-2xl" />
-                  
-                  {/* Floating Badges with slight movement */}
-                  <div className="absolute -top-6 -right-6 bg-white/90 backdrop-blur px-4 py-3 rounded-2xl shadow-xl border border-slate-100 flex items-center gap-3 animate-float-delayed z-20"
-                       style={{ transform: `translate(${mousePos.x * 10}px, ${mousePos.y * 10}px)` }}>
-                     <div className="bg-indigo-100 p-2 rounded-xl">
-                       <Globe className="h-5 w-5 text-indigo-600" />
-                     </div>
-                     <div>
-                       <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Sources</p>
-                       <p className="text-xs font-bold text-slate-900">IEEE • Springer • Nature</p>
-                     </div>
-                  </div>
+               <div className="relative z-10 animate-float-y">
+                   {/* Main Mascot */}
+                   <LemurMascot className="w-64 h-64 sm:w-80 sm:h-80 lg:w-[500px] lg:h-[500px] drop-shadow-2xl" />
+                   
+                   {/* Orbiting Elements */}
+                   <div className="absolute -top-4 -right-4 sm:-top-10 sm:-right-10 glass-panel p-3 sm:p-4 rounded-2xl animate-float-delayed">
+                      <div className="flex items-center gap-3">
+                         <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-indigo-50 flex items-center justify-center border border-indigo-100">
+                            <BrainCircuit className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
+                         </div>
+                         <div>
+                            <div className="text-[8px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-widest">Reasoning</div>
+                            <div className="text-xs sm:text-sm font-bold text-slate-900">Gemini 3.0 Pro</div>
+                         </div>
+                      </div>
+                   </div>
 
-                  <div className="absolute bottom-10 -left-8 bg-white/90 backdrop-blur px-4 py-3 rounded-2xl shadow-xl border border-slate-100 flex items-center gap-3 animate-float z-20"
-                       style={{ transform: `translate(${mousePos.x * 15}px, ${mousePos.y * 15}px)` }}>
-                     <div className="bg-green-100 p-2 rounded-xl">
-                       <CheckCircle2 className="h-5 w-5 text-green-600" />
-                     </div>
-                     <div>
-                       <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Verification</p>
-                       <p className="text-xs font-bold text-slate-900">100% Hallucination Free</p>
-                     </div>
-                  </div>
+                   <div className="absolute bottom-10 -left-6 sm:bottom-20 sm:-left-10 glass-panel p-3 sm:p-4 rounded-2xl animate-float">
+                      <div className="flex items-center gap-3">
+                         <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-50 flex items-center justify-center border border-green-100">
+                            <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                         </div>
+                         <div>
+                            <div className="text-[8px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-widest">Validation</div>
+                            <div className="text-xs sm:text-sm font-bold text-slate-900">Hallucination Free</div>
+                         </div>
+                      </div>
+                   </div>
                </div>
             </div>
 
@@ -301,305 +298,455 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         </div>
       </section>
 
-      {/* Infinite Marquee Section */}
-      <section className="bg-slate-900 border-y border-slate-800 py-4 overflow-hidden relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-transparent to-slate-900 z-10 pointer-events-none"></div>
+      {/* INFINITE SCROLL */}
+      <section className="border-y border-slate-200 bg-white py-4 overflow-hidden relative z-10">
           <div className="flex animate-marquee hover:[animation-play-state:paused]">
               {[...BREAKTHROUGHS, ...BREAKTHROUGHS, ...BREAKTHROUGHS].map((item, i) => (
-                  <div key={i} className="flex items-center gap-4 mx-8 shrink-0 opacity-80 hover:opacity-100 transition-opacity">
-                      <div className="bg-indigo-500/20 p-1.5 rounded-lg">
-                          <Sparkles className="w-4 h-4 text-indigo-400" />
+                  <div key={i} className="flex items-center gap-4 mx-12 shrink-0 opacity-70 hover:opacity-100 transition-opacity cursor-default">
+                      <div className="bg-indigo-50 p-1 rounded-md">
+                        <Sparkles className="w-4 h-4 text-indigo-600" />
                       </div>
                       <div className="flex flex-col">
-                          <span className="text-slate-200 text-sm font-medium">{item.title}</span>
-                          <div className="flex items-center gap-2 text-[10px] text-slate-400 uppercase tracking-wider">
-                             <span>{item.category}</span>
-                             <span className="w-1 h-1 bg-slate-600 rounded-full"></span>
-                             <span className="text-green-400">Novelty: {item.novelty}%</span>
-                          </div>
+                          <span className="text-slate-800 text-sm font-semibold">{item.title}</span>
+                          <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">{item.category} • NOVELTY: {item.novelty}%</span>
                       </div>
                   </div>
               ))}
           </div>
       </section>
 
-      {/* Feature Grid with 3D Tilt */}
-      <section id="how-it-works" className="py-24 bg-white relative z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <span className="text-indigo-600 font-bold tracking-wider uppercase text-sm mb-2 block">The Workflow</span>
-            <h2 className="text-4xl lg:text-5xl font-bold text-slate-900 mb-6">Autonomous Research Pipeline</h2>
-            <p className="text-xl text-slate-500 max-w-2xl mx-auto">
-              Most AI chats. This agent <span className="text-indigo-600 font-semibold">works</span>. See how we transform a simple prompt into a rigorous academic paper.
-            </p>
-          </div>
+      {/* INTELLIGENCE GRID */}
+      <section className="py-24 sm:py-32 relative z-10 bg-slate-50">
+         <div className="max-w-7xl mx-auto px-4">
+            <div className="text-center mb-16 sm:mb-20">
+               <span className="text-indigo-600 font-bold text-sm tracking-widest uppercase mb-4 block">Proprietary Architecture</span>
+               <h2 className="text-3xl sm:text-5xl font-bold text-slate-900 mb-6">Built Different.</h2>
+               <p className="text-slate-500 text-base sm:text-lg max-w-2xl mx-auto">
+                  We don't just wrap a chatbot. We orchestrate a swarm of specialized agents—Reviewers, Statisticians, and Drafters—working in consensus.
+               </p>
+            </div>
 
-          <div className="grid md:grid-cols-3 gap-8 lg:gap-8 perspective-1000">
-            <FeatureCard 
-               title="Multi-Agent Swarm" 
-               desc="We don't just Google it. We deploy specialized sub-agents to crawl IEEE Xplore, Springer, and Elsevier concurrently, extracting only high-impact factor journals."
-               icon={<Network className="h-8 w-8" />}
-               colorClass="text-indigo-600"
-               bgHover="hover:border-indigo-200 hover:shadow-indigo-100"
-               hoverBg="bg-indigo-100/50"
-            />
-            <FeatureCard 
-               title="Reasoning Engine" 
-               desc="Using Gemini 1.5 Pro's extended context window, we read full abstracts to detect contradictions and calculate a unique 'Novelty Score' for every generated topic."
-               icon={<Cpu className="h-8 w-8" />}
-               colorClass="text-purple-600"
-               bgHover="hover:border-purple-200 hover:shadow-purple-100"
-               hoverBg="bg-purple-100/50"
-            />
-            <FeatureCard 
-               title="LaTeX Compiler" 
-               desc="Forget copy-pasting Markdown. We generate valid, compilable LaTeX code with BibTeX integration, formatted for ACM or IEEE conference proceedings."
-               icon={<FileText className="h-8 w-8" />}
-               colorClass="text-amber-600"
-               bgHover="hover:border-amber-200 hover:shadow-amber-100"
-               hoverBg="bg-amber-100/50"
-            />
-          </div>
-        </div>
+            <div className="grid md:grid-cols-3 gap-6 sm:gap-8">
+               <FeatureCard 
+                  icon={<BrainCircuit className="w-8 h-8 text-indigo-600" />}
+                  color="bg-indigo-50 border-indigo-100"
+                  title="Chain-of-Verification"
+                  desc="Every claim is cross-referenced against 200M+ papers in OpenAlex and Semantic Scholar before text generation begins."
+               />
+               <FeatureCard 
+                  icon={<Network className="w-8 h-8 text-purple-600" />}
+                  color="bg-purple-50 border-purple-100"
+                  title="Multi-Agent Consensus"
+                  desc="A 'Devil's Advocate' agent challenges the methodology of the 'Drafter' agent to simulate rigorous peer review."
+               />
+               <FeatureCard 
+                  icon={<Cpu className="w-8 h-8 text-blue-600" />}
+                  color="bg-blue-50 border-blue-100"
+                  title="Gemini 3.0 Long Context"
+                  desc="We load hundreds of full-text PDF citations into the context window to synthesize deep, non-obvious connections."
+               />
+            </div>
+         </div>
       </section>
 
-      {/* Novelty Engine Showcase Section */}
-      <section className="py-24 bg-slate-50 border-t border-slate-200 overflow-hidden relative">
+      {/* NEW: METHODOLOGY FRAMEWORKS */}
+      <section className="py-24 bg-white border-y border-slate-100 relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-             <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-100 text-rose-600 text-xs font-bold uppercase tracking-wider mb-6 animate-pulse">
-                   <ShieldAlert className="w-4 h-4" /> Uniqueness Verification
-                </div>
-                <h2 className="text-4xl font-bold text-slate-900 mb-6 leading-tight">
-                   Stop Reinventing the Wheel. <br/>
-                   <span className="text-indigo-600">Check Novelty Instantly.</span>
-                </h2>
-                <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-                   73% of papers are rejected because the work has already been done. Our <strong>Novelty Engine</strong> scans millions of papers in real-time to calculate a uniqueness score before you write a single word.
-                </p>
-                
-                <ul className="space-y-4">
-                   {[
-                      "Semantic collision detection with existing literature",
-                      "Identification of 'saturated' research clusters",
-                      "White-space mapping for high-impact gaps",
-                      "Automated 'Novelty Score' Calculation (0-100)"
-                   ].map((item, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                         <div className="mt-1 bg-green-100 p-1 rounded-full shrink-0"><CheckCircle2 className="w-3 h-3 text-green-600" /></div>
-                         <span className="text-slate-700 font-medium">{item}</span>
-                      </li>
-                   ))}
-                </ul>
-                
-                <div className="mt-8 flex gap-4">
-                    <div className="flex flex-col">
-                        <span className="text-3xl font-bold text-slate-900">200M+</span>
-                        <span className="text-xs text-slate-500 uppercase tracking-wide">Papers Indexed</span>
-                    </div>
-                    <div className="w-px bg-slate-200 h-12"></div>
-                    <div className="flex flex-col">
-                        <span className="text-3xl font-bold text-slate-900">0.4s</span>
-                        <span className="text-xs text-slate-500 uppercase tracking-wide">Scan Latency</span>
-                    </div>
-                </div>
-             </div>
-             
-             {/* Visual Representation of Scanner */}
-             <div className="relative h-[450px] bg-slate-900 rounded-3xl border border-slate-800 shadow-2xl p-8 overflow-hidden group">
-                
-                {/* Background Grid */}
-                <div className="absolute inset-0 opacity-20" 
-                     style={{ backgroundImage: 'linear-gradient(#334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px)', backgroundSize: '40px 40px' }}>
-                </div>
+            <div className="text-center mb-16">
+               <span className="text-emerald-600 font-bold text-sm tracking-widest uppercase mb-4 block">Methodology Engine</span>
+               <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4">Select Your Research Approach</h2>
+               <p className="text-slate-500 max-w-2xl mx-auto">
+                  ScholarAgent adheres to strict scientific protocols. Choose the methodology that fits your domain.
+               </p>
+            </div>
 
-                {/* Central "User Idea" Node */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 flex flex-col items-center">
-                    <div className="relative">
-                        <div className="w-16 h-16 bg-indigo-500 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(99,102,241,0.5)] z-20">
-                            <Sparkles className="w-8 h-8 text-white" />
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {METHODOLOGIES.map((m) => (
+                    <div key={m.id} className="bg-slate-50 rounded-xl p-6 border border-slate-200 hover:border-indigo-300 hover:bg-white hover:shadow-lg transition-all duration-300 group cursor-default">
+                        <div className="mb-4 bg-white w-12 h-12 rounded-lg border border-slate-200 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+                            {m.icon}
                         </div>
-                        {/* Pulse Ring */}
-                        <div className="absolute inset-0 rounded-full border border-indigo-500 animate-pulse-ring z-10"></div>
-                    </div>
-                    <div className="mt-4 bg-slate-800/80 backdrop-blur px-3 py-1 rounded text-xs text-indigo-300 font-mono border border-indigo-500/30">
-                        Analyzing Topic...
-                    </div>
-                </div>
-
-                {/* Scanning Beam */}
-                <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-green-500 to-transparent shadow-[0_0_20px_#22c55e] z-10 animate-scan"></div>
-
-                {/* "Existing Papers" Nodes */}
-                {[...Array(8)].map((_, i) => (
-                    <div key={i} 
-                         className="absolute w-3 h-3 rounded-full bg-slate-600 transition-colors duration-500 animate-pulse"
-                         style={{
-                             top: `${20 + Math.random() * 60}%`,
-                             left: `${10 + Math.random() * 80}%`,
-                             animationDelay: `${i * 0.5}s`
-                         }}
-                    >
-                        <div className={`absolute -top-6 left-1/2 -translate-x-1/2 text-[8px] text-slate-400 bg-slate-800 px-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap transition-opacity delay-[${i * 100}ms]`}>
-                            Paper Ref #{2390 + i}
+                        <h3 className="text-lg font-bold text-slate-900 mb-2">{m.title}</h3>
+                        <p className="text-xs text-slate-500 mb-4 leading-relaxed h-16">{m.desc}</p>
+                        <div className="flex flex-wrap gap-2">
+                            {m.tags.map(tag => (
+                                <span key={tag} className="text-[10px] bg-slate-200 text-slate-600 px-2 py-1 rounded font-medium">
+                                    {tag}
+                                </span>
+                            ))}
                         </div>
                     </div>
                 ))}
-                
-                {/* HUD Elements */}
-                <div className="absolute top-6 left-6 text-xs font-mono text-green-400">
-                    STATUS: SCANNING DATABASE<br/>
-                    MODE: NOVELTY CHECK<br/>
-                    TARGET: CONTRADICTIONS
-                </div>
-                <div className="absolute bottom-6 right-6 text-right">
-                    <div className="text-4xl font-bold text-green-500 font-mono">94%</div>
-                    <div className="text-[10px] text-slate-400 uppercase tracking-widest">Novelty Score</div>
-                </div>
-             </div>
-          </div>
+            </div>
         </div>
       </section>
 
-      {/* High Speed Peer Review Showcase */}
-      <section className="py-24 bg-white border-t border-slate-200">
+      {/* NEW: PAPER SHOWCASE */}
+      <section className="py-24 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4">
-             <div className="text-center mb-16">
-                 <h2 className="text-4xl font-bold text-slate-900 mb-4">High-Velocity Peer Review</h2>
-                 <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-                    Why wait 6 months for feedback? Get ruthless, rigorous, high-speed critique in seconds.
-                 </p>
-             </div>
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+                <div>
+                   <span className="text-amber-600 font-bold text-sm tracking-widest uppercase mb-2 block">Output Showcase</span>
+                   <h2 className="text-3xl sm:text-4xl font-bold text-slate-900">Research We've Generated</h2>
+                </div>
+                <div className="flex gap-2">
+                   <span className="text-xs font-medium text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-sm">Computer Science</span>
+                   <span className="text-xs font-medium text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-sm">Materials</span>
+                   <span className="text-xs font-medium text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-sm">Social Sci</span>
+                </div>
+            </div>
 
-             <div className="grid md:grid-cols-2 gap-8 items-center bg-slate-50 rounded-[2.5rem] p-8 md:p-12 border border-slate-200 shadow-sm relative overflow-hidden">
-                 
-                 {/* Left: Traditional Process */}
-                 <div className="relative z-10 space-y-6">
-                    <div className="flex items-center gap-4 opacity-50 grayscale hover:grayscale-0 transition-all">
-                        <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center">
-                            <Clock className="w-6 h-6 text-slate-500" />
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-slate-700">Traditional Journal Review</h4>
-                            <p className="text-sm text-slate-500">Average wait time: 4-8 months</p>
-                            <div className="w-64 h-2 bg-slate-200 rounded-full mt-2 overflow-hidden">
-                                <div className="w-[10%] h-full bg-slate-400"></div>
+            <div className="flex flex-col lg:flex-row gap-8">
+                {/* List Column */}
+                <div className="lg:w-1/3 space-y-4">
+                    {SHOWCASE_PAPERS.map((paper, idx) => (
+                        <button 
+                            key={paper.id}
+                            onClick={() => setActivePaperIndex(idx)}
+                            className={`w-full text-left p-6 rounded-xl border transition-all duration-300 relative overflow-hidden group
+                                ${activePaperIndex === idx 
+                                    ? 'bg-white border-indigo-600 shadow-lg scale-105 z-10' 
+                                    : 'bg-white border-slate-200 hover:border-indigo-300 hover:bg-slate-50 opacity-80 hover:opacity-100'}
+                            `}
+                        >
+                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${activePaperIndex === idx ? `bg-${paper.color}-500` : 'bg-transparent'}`}></div>
+                            <div className="text-xs font-bold text-slate-400 mb-1 uppercase tracking-wide">{paper.field}</div>
+                            <h3 className={`font-bold text-sm sm:text-base mb-2 ${activePaperIndex === idx ? 'text-slate-900' : 'text-slate-700'}`}>
+                                {paper.title}
+                            </h3>
+                            <div className="flex items-center gap-2 text-xs text-slate-500">
+                                <FileText className="w-3 h-3" />
+                                {paper.latexClass}
                             </div>
+                        </button>
+                    ))}
+                </div>
+
+                {/* Preview Column */}
+                <div className="lg:w-2/3">
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-2xl overflow-hidden h-full flex flex-col min-h-[500px]">
+                        {/* Fake Browser Header */}
+                        <div className="bg-slate-100 border-b border-slate-200 px-4 py-3 flex items-center gap-4">
+                            <div className="flex gap-1.5">
+                                <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                                <div className="w-3 h-3 rounded-full bg-amber-400"></div>
+                                <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                            </div>
+                            <div className="flex-1 bg-white h-8 rounded border border-slate-200 flex items-center px-3 text-xs text-slate-500">
+                                <ExternalLink className="w-3 h-3 mr-2" />
+                                https://scholaragent.ai/preview/{SHOWCASE_PAPERS[activePaperIndex].id}/pdf
+                            </div>
+                            <button className="text-slate-400 hover:text-indigo-600"><Download className="w-4 h-4" /></button>
+                        </div>
+
+                        {/* PDF Preview Area */}
+                        <div className="flex-1 p-8 sm:p-12 bg-white relative">
+                             <div className="max-w-2xl mx-auto animate-fade-in key={activePaperIndex}">
+                                 {/* Paper Header */}
+                                 <div className="text-center mb-8 border-b border-slate-100 pb-8">
+                                     <h1 className="text-2xl sm:text-3xl font-serif font-bold text-slate-900 mb-4 leading-tight">
+                                         {SHOWCASE_PAPERS[activePaperIndex].title}
+                                     </h1>
+                                     <div className="text-sm text-slate-600 font-serif italic mb-2">
+                                         {SHOWCASE_PAPERS[activePaperIndex].author}, Department of Automated Science
+                                     </div>
+                                     <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                         {SHOWCASE_PAPERS[activePaperIndex].journal}
+                                     </div>
+                                 </div>
+
+                                 {/* Abstract */}
+                                 <div className="mb-8">
+                                     <div className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-2 text-center">Abstract</div>
+                                     <p className="text-sm sm:text-base font-serif text-slate-700 leading-relaxed text-justify">
+                                         <span className="font-bold text-slate-900 mr-1">{SHOWCASE_PAPERS[activePaperIndex].abstract.split(' ')[0]}</span>
+                                         {SHOWCASE_PAPERS[activePaperIndex].abstract.substring(SHOWCASE_PAPERS[activePaperIndex].abstract.indexOf(' ') + 1)}
+                                     </p>
+                                 </div>
+
+                                 {/* Fake Columns */}
+                                 <div className="grid grid-cols-2 gap-6 opacity-30 select-none pointer-events-none">
+                                     <div className="space-y-4">
+                                         <div className="h-4 bg-slate-800 w-3/4 mb-2"></div>
+                                         <div className="h-2 bg-slate-400 w-full"></div>
+                                         <div className="h-2 bg-slate-400 w-full"></div>
+                                         <div className="h-2 bg-slate-400 w-5/6"></div>
+                                         <div className="h-24 bg-slate-200 w-full mt-4 rounded"></div>
+                                     </div>
+                                      <div className="space-y-4">
+                                         <div className="h-2 bg-slate-400 w-full"></div>
+                                         <div className="h-2 bg-slate-400 w-full"></div>
+                                         <div className="h-2 bg-slate-400 w-full"></div>
+                                         <div className="h-2 bg-slate-400 w-4/6"></div>
+                                          <div className="h-4 bg-slate-800 w-1/2 mt-6 mb-2"></div>
+                                         <div className="h-2 bg-slate-400 w-full"></div>
+                                     </div>
+                                 </div>
+                                 
+                                 {/* Watermark */}
+                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                     <div className="text-slate-100 font-bold text-6xl -rotate-45 uppercase border-4 border-slate-100 p-8 rounded-xl opacity-50">
+                                         Scholar Agent
+                                     </div>
+                                 </div>
+                             </div>
                         </div>
                     </div>
-
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center shadow-lg shadow-indigo-100">
-                            <Zap className="w-6 h-6 text-indigo-600" />
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-slate-900">ScholarAgent Instant Review</h4>
-                            <p className="text-sm text-slate-500">Average wait time: <span className="text-indigo-600 font-bold">12 seconds</span></p>
-                            <div className="w-64 h-2 bg-slate-200 rounded-full mt-2 overflow-hidden">
-                                <div className="w-[95%] h-full bg-gradient-to-r from-indigo-500 to-purple-500 animate-pulse"></div>
-                            </div>
-                        </div>
-                    </div>
-                 </div>
-
-                 {/* Right: Feature List */}
-                 <div className="relative z-10 grid gap-4">
-                     <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex items-center gap-3 mb-2">
-                             <Target className="w-5 h-5 text-rose-500" />
-                             <h4 className="font-bold text-slate-900">Methodology Stress Test</h4>
-                        </div>
-                        <p className="text-sm text-slate-600">Agents aggressively attack your statistical methods to find weak points before Reviewer #2 does.</p>
-                     </div>
-                     <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex items-center gap-3 mb-2">
-                             <Radar className="w-5 h-5 text-indigo-500" />
-                             <h4 className="font-bold text-slate-900">Reference Integrity Check</h4>
-                        </div>
-                        <p className="text-sm text-slate-600">Automatic validation of 100% of bibliography entries against valid DOIs.</p>
-                     </div>
-                 </div>
-                 
-                 {/* Decorative */}
-                 <div className="absolute right-0 top-0 w-1/3 h-full bg-gradient-to-l from-indigo-50 to-transparent pointer-events-none"></div>
-             </div>
+                </div>
+            </div>
         </div>
       </section>
 
-      {/* Pricing Section */}
+      {/* SPLIT SECTION: LATEX AUTOMATION */}
+      <section className="py-24 sm:py-32 bg-white border-y border-slate-100 relative overflow-hidden">
+         <div className="absolute inset-0 grid-bg opacity-30"></div>
+         <div className="max-w-7xl mx-auto px-4 relative z-10">
+            <div className="grid lg:grid-cols-2 gap-16 lg:gap-20 items-center">
+               
+               {/* Left Content */}
+               <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 text-xs font-bold mb-8">
+                     <Terminal className="w-4 h-4" /> LATEX_COMPILER_V2
+                  </div>
+                  <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-6">
+                     Zero Syntax Errors. <br/>
+                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Guaranteed.</span>
+                  </h2>
+                  <p className="text-slate-600 text-base sm:text-lg mb-8 leading-relaxed">
+                     Forget missing brackets and broken BibTeX. Our engine generates perfectly valid LaTeX code, compiles it in the cloud, and delivers a pristine PDF.
+                  </p>
+                  
+                  <div className="space-y-4">
+                     {['Automatic Package Management', 'BibTeX Formatting & Citation Keys', 'Float Placement Optimization'].map((item, i) => (
+                        <div key={i} className="flex items-center gap-4 group">
+                           <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center border border-green-100 group-hover:border-green-300 transition-colors">
+                              <CheckCircle2 className="w-4 h-4 text-green-600" />
+                           </div>
+                           <span className="text-slate-700 font-medium">{item}</span>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+
+               {/* Right Visual: Code vs PDF */}
+               <div className="relative group perspective-1000 hidden sm:block">
+                  <div className="absolute -inset-2 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+                  <div className="relative bg-slate-900 rounded-xl border border-slate-800 shadow-2xl overflow-hidden h-[400px] flex">
+                     
+                     {/* Code Side (Dark Mode for Code) */}
+                     <div className="w-1/2 p-6 border-r border-slate-700 font-mono text-[10px] text-slate-400 leading-relaxed overflow-hidden bg-[#0d1117]">
+                        <div className="text-indigo-400 mb-2 font-bold">// Source Code</div>
+                        <p><span className="text-purple-400">\documentclass</span><span className="text-yellow-200">&#123;article&#125;</span></p>
+                        <p><span className="text-purple-400">\usepackage</span><span className="text-yellow-200">&#123;amsmath&#125;</span></p>
+                        <p className="opacity-50">...</p>
+                        <p><span className="text-purple-400">\begin</span><span className="text-yellow-200">&#123;document&#125;</span></p>
+                        <p><span className="text-purple-400">\section</span><span className="text-yellow-200">&#123;Introduction&#125;</span></p>
+                        <p>Recent advances in large language models...</p>
+                        <p className="mt-4 text-red-400">Error: Missing $ inserted</p>
+                     </div>
+
+                     {/* PDF Side (Light Mode for PDF) */}
+                     <div className="w-1/2 bg-white p-6 relative">
+                        <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[10px] px-2 py-1 font-bold">PDF</div>
+                        <div className="space-y-4 opacity-80 scale-90 origin-top">
+                           <div className="h-4 w-3/4 bg-slate-800 rounded mx-auto mb-6"></div>
+                           <div className="h-2 w-full bg-slate-200 rounded"></div>
+                           <div className="h-2 w-full bg-slate-200 rounded"></div>
+                           <div className="h-2 w-5/6 bg-slate-200 rounded"></div>
+                           <div className="grid grid-cols-2 gap-4 mt-6">
+                              <div className="h-20 bg-slate-100 rounded border border-slate-200"></div>
+                              <div className="space-y-2">
+                                 <div className="h-2 w-full bg-slate-200 rounded"></div>
+                                 <div className="h-2 w-full bg-slate-200 rounded"></div>
+                              </div>
+                           </div>
+                        </div>
+                        
+                        {/* "Processing" Overlay */}
+                        <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                           <div className="bg-slate-900 text-white px-4 py-2 rounded-full shadow-xl flex items-center gap-2 text-xs font-bold">
+                              <CheckCircle2 className="w-4 h-4 text-green-400" /> Compiled (0.4s)
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+                
+               {/* Mobile fallback for Code vs PDF */}
+               <div className="block sm:hidden relative bg-slate-900 rounded-xl p-4 shadow-xl">
+                    <div className="flex items-center justify-between mb-4 border-b border-slate-700 pb-2">
+                        <span className="text-indigo-400 text-xs font-mono">// Source</span>
+                        <ArrowRight className="text-slate-500 w-4 h-4" />
+                        <span className="text-white text-xs font-bold">PDF</span>
+                    </div>
+                    <div className="space-y-2">
+                        <div className="h-2 w-3/4 bg-slate-700 rounded"></div>
+                        <div className="h-2 w-full bg-slate-700 rounded"></div>
+                        <div className="h-20 bg-white/10 rounded border border-slate-700 mt-2 flex items-center justify-center">
+                            <CheckCircle2 className="w-8 h-8 text-green-500" />
+                        </div>
+                    </div>
+               </div>
+
+            </div>
+         </div>
+      </section>
+
+      {/* FEATURE: NOVELTY RADAR */}
+      <section className="py-24 sm:py-32 relative overflow-hidden bg-slate-50">
+         <div className="max-w-7xl mx-auto px-4 relative z-10">
+            <div className="grid lg:grid-cols-2 gap-16 lg:gap-20 items-center">
+               
+               {/* Radar Visual */}
+               <div className="order-2 lg:order-1 relative flex justify-center py-8 lg:py-0">
+                  {/* Container: Responsive Size */}
+                  <div className="relative w-[280px] h-[280px] sm:w-[400px] sm:h-[400px] border border-slate-200 rounded-full flex items-center justify-center bg-white shadow-2xl shrink-0">
+                     {/* Rotating Sweep */}
+                     <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-indigo-100 to-transparent animate-scan-radar z-0 opacity-50"></div>
+                     <div className="absolute top-0 left-1/2 w-px h-1/2 bg-indigo-500 origin-bottom animate-scan-radar z-10 shadow-[0_0_10px_#6366f1]"></div>
+                     
+                     {/* Rings: Responsive Insets (percentages) */}
+                     <div className="absolute inset-[12.5%] border border-slate-100 rounded-full"></div>
+                     <div className="absolute inset-[25%] border border-slate-100 rounded-full"></div>
+                     <div className="absolute inset-[37.5%] border border-slate-100 rounded-full"></div>
+                     
+                     {/* Center Mascot: Responsive Size */}
+                     <div className="relative z-20 bg-white p-2 rounded-full border border-indigo-100 shadow-xl">
+                        <LemurMascot className="w-16 h-16 sm:w-24 sm:h-24" variant="telescope" />
+                     </div>
+
+                     {/* Blips: Percentage Positioning */}
+                     <div className="absolute top-[20%] right-[20%] w-2 h-2 sm:w-3 sm:h-3 bg-red-500 rounded-full animate-ping"></div>
+                     <div className="absolute bottom-[25%] left-[15%] w-2 h-2 sm:w-3 sm:h-3 bg-emerald-500 rounded-full animate-ping animation-delay-2000"></div>
+
+                     {/* HUD Text: Responsive Size & Position */}
+                     <div className="absolute bottom-[10%] right-[10%] text-right">
+                        <div className="text-2xl sm:text-4xl font-mono font-bold text-slate-900">94%</div>
+                        <div className="text-[8px] sm:text-[10px] text-indigo-600 uppercase tracking-widest font-bold">Novelty Score</div>
+                     </div>
+                  </div>
+               </div>
+
+               {/* Right Content */}
+               <div className="order-1 lg:order-2">
+                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-600 text-xs font-bold mb-6 sm:mb-8">
+                     <Radar className="w-4 h-4" /> GAP_ANALYSIS_ENGINE
+                  </div>
+                  <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-6">
+                     Novelty Verification. <br/>
+                     <span className="text-slate-400">Stop Reinventing.</span>
+                  </h2>
+                  <p className="text-slate-600 text-base sm:text-lg mb-8 leading-relaxed">
+                     73% of papers are rejected for lack of novelty. Our engine scans 200M+ papers in real-time to ensure your research gap is genuine before you write a single word.
+                  </p>
+                  <ul className="space-y-4">
+                     {["Semantic Collision Detection", "Saturation Heatmaps", "White-Space Identification"].map((item, i) => (
+                        <li key={i} className="flex items-center gap-3 text-slate-700 font-medium text-sm">
+                           <div className="w-2 h-2 bg-indigo-500 rounded-full shadow-sm"></div>
+                           {item}
+                        </li>
+                     ))}
+                  </ul>
+               </div>
+
+            </div>
+         </div>
+      </section>
+
+      {/* FEATURE: REVIEWER AGENT HUD */}
+      <section className="py-24 sm:py-32 bg-white border-y border-slate-100">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-600 text-xs font-bold mb-8">
+                <ShieldAlert className="w-4 h-4" /> ADVERSARIAL_REVIEW
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-6">Meet "Reviewer #2"</h2>
+            <p className="text-slate-600 text-base sm:text-lg mb-12">
+                We built an AI specifically designed to reject your paper. It finds logical fallacies and weak baselines so the real reviewers don't.
+            </p>
+            
+            <div className="bg-slate-900 rounded-2xl border border-slate-800 p-1 shadow-2xl overflow-hidden relative group text-left mx-auto">
+                {/* HUD Overlay */}
+                <div className="absolute inset-0 pointer-events-none z-20 border-[2px] border-rose-500/20 rounded-2xl"></div>
+                <div className="absolute top-4 left-4 text-[10px] font-mono text-rose-400 animate-pulse z-20 font-bold">SCANNING FOR ERRORS...</div>
+                
+                <div className="bg-[#0f172a] p-4 sm:p-8 font-mono text-xs sm:text-sm relative z-10 overflow-hidden min-h-[300px]">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <LemurMascot className="w-24 h-24 sm:w-32 sm:h-32 opacity-20 grayscale" />
+                    </div>
+                    
+                    <div className="space-y-4 mt-6 sm:mt-0">
+                        {/* Chat bubbles: Responsive Layout */}
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 opacity-60">
+                            <div className="w-8 h-8 rounded bg-slate-700 flex items-center justify-center shrink-0 text-slate-300 self-start">User</div>
+                            <div className="bg-slate-800 p-3 rounded-lg text-slate-300 w-full sm:w-3/4">
+                                Here is my methodology section proposing a new GNN architecture...
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row-reverse gap-2 sm:gap-4">
+                            <div className="w-8 h-8 rounded bg-rose-900/40 border border-rose-500/50 flex items-center justify-center shrink-0 text-rose-500 font-bold self-start">AI</div>
+                            <div className="bg-rose-950/20 border border-rose-900/50 p-4 rounded-lg text-rose-200 w-full sm:w-3/4 shadow-lg">
+                                <span className="text-rose-400 font-bold block text-xs mb-2">[CRITICAL FLAW DETECTED]</span>
+                                Your baseline comparison is unfair. You used ResNet-50 for the control but ViT-L for your method. <br/><br/>
+                                <span className="text-white bg-rose-600 px-1 rounded-sm text-[10px]">Suggestion:</span> Retest control group with matching parameter count.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </section>
+
+      {/* RESEARCH SCOPE */}
+      <section className="py-24 bg-slate-50">
+         <div className="max-w-5xl mx-auto px-4">
+            <div className="bg-white rounded-3xl p-8 sm:p-16 flex flex-col md:flex-row gap-8 sm:gap-12 items-center relative overflow-hidden shadow-xl border border-slate-100">
+               <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-full blur-[60px]"></div>
+               
+               <div className="flex-1 relative z-10">
+                  <h3 className="text-2xl font-bold text-slate-900 mb-4">Scientific Integrity Protocol</h3>
+                  <p className="text-slate-600 mb-6 leading-relaxed">
+                     ScholarAgent is restricted to <span className="text-indigo-600 font-bold">Theoretical</span> and <span className="text-indigo-600 font-bold">Simulation-based</span> research. We do not fabricate wet-lab data.
+                  </p>
+                  <div className="flex flex-wrap gap-4 text-xs font-mono text-slate-500 font-bold">
+                     <span className="flex items-center gap-1"><CheckCircle2 className="w-4 h-4 text-green-500" /> Math</span>
+                     <span className="flex items-center gap-1"><CheckCircle2 className="w-4 h-4 text-green-500" /> CS</span>
+                     <span className="flex items-center gap-1"><CheckCircle2 className="w-4 h-4 text-green-500" /> Social Sci</span>
+                  </div>
+               </div>
+               
+               <div className="flex-1 w-full relative z-10">
+                   <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
+                       <div className="flex items-center gap-3 mb-3 pb-3 border-b border-slate-200">
+                           <FlaskConical className="w-5 h-5 text-slate-400" />
+                           <span className="text-slate-500 text-sm font-medium">Physical Experiments</span>
+                           <span className="ml-auto text-[10px] bg-slate-200 text-slate-500 px-2 py-1 rounded font-bold">UNSUPPORTED</span>
+                       </div>
+                       <div className="flex items-center gap-3">
+                           <Binary className="w-5 h-5 text-indigo-600" />
+                           <span className="text-slate-900 text-sm font-bold">Computational / Review</span>
+                           <span className="ml-auto text-[10px] bg-indigo-100 text-indigo-700 px-2 py-1 rounded border border-indigo-200 font-bold">OPTIMIZED</span>
+                       </div>
+                   </div>
+               </div>
+            </div>
+         </div>
+      </section>
+
       <PricingSection />
-
-      {/* Trust/Social Proof Section */}
-      <section className="py-20 bg-slate-900 text-white overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <div className="inline-flex items-center justify-center p-3 bg-slate-800 rounded-full mb-8 animate-pulse">
-            <Award className="w-6 h-6 text-yellow-400 mr-2" />
-            <span className="font-bold text-sm tracking-wide text-slate-200">#1 Rated Academic Tool 2024</span>
-          </div>
-          
-          <h2 className="text-3xl font-bold mb-12">Trusted by Labs at World-Class Institutions</h2>
-          
-          <div className="flex flex-wrap justify-center gap-12 md:gap-20 opacity-60 grayscale hover:grayscale-0 transition-all duration-700">
-             <div className="text-2xl font-serif font-bold tracking-tighter flex items-center gap-2"><Globe className="w-6 h-6" /> MIT CSAIL</div>
-             <div className="text-2xl font-sans font-bold tracking-tight flex items-center gap-2"><Activity className="w-6 h-6" /> STANFORD</div>
-             <div className="text-2xl font-serif font-bold flex items-center gap-2"><Search className="w-6 h-6" /> OXFORD</div>
-             <div className="text-2xl font-mono font-bold flex items-center gap-2"><Zap className="w-6 h-6" /> ETH ZÜRICH</div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 };
 
-// Internal Component for Tilt Card to isolate logic
-const FeatureCard: React.FC<{title: string, desc: string, icon: React.ReactNode, colorClass: string, bgHover: string, hoverBg: string}> = ({
-    title, desc, icon, colorClass, bgHover, hoverBg
-}) => {
-    const cardRef = useRef<HTMLDivElement>(null);
-    
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!cardRef.current) return;
-        const rect = cardRef.current.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        // Calculate rotation (limit to +/- 5deg)
-        const xPct = (x / rect.width) - 0.5;
-        const yPct = (y / rect.height) - 0.5;
-        
-        cardRef.current.style.setProperty('--rotateX', `${yPct * -10}deg`);
-        cardRef.current.style.setProperty('--rotateY', `${xPct * 10}deg`);
-    };
-
-    const handleMouseLeave = () => {
-         if (!cardRef.current) return;
-         cardRef.current.style.setProperty('--rotateX', `0deg`);
-         cardRef.current.style.setProperty('--rotateY', `0deg`);
-    };
-
-    return (
-        <div 
-            ref={cardRef}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-            className={`tilt-card bg-slate-50 rounded-[2rem] p-8 border border-slate-100 transition-all duration-300 group relative overflow-hidden shadow-sm hover:shadow-2xl ${bgHover}`}
-            style={{ transformStyle: 'preserve-3d' }}
-        >
-            <div className={`absolute top-0 right-0 w-40 h-40 ${hoverBg} rounded-bl-[4rem] -mr-10 -mt-10 group-hover:scale-110 transition-transform duration-500`}></div>
-            
-            <div className={`w-16 h-16 bg-white rounded-2xl border border-slate-200 flex items-center justify-center mb-8 ${colorClass} shadow-sm relative z-10 group-hover:-translate-y-2 transition-transform duration-300`}>
+// UI Components
+const FeatureCard: React.FC<{ icon: React.ReactNode, title: string, desc: string, color: string }> = ({ icon, title, desc, color }) => (
+    <div className={`p-8 rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group`}>
+        <div className={`mb-6 w-16 h-16 rounded-2xl flex items-center justify-center transition-all ${color} group-hover:scale-110`}>
             {icon}
-            </div>
-            
-            <h3 className="text-2xl font-bold text-slate-900 mb-4 transform translate-z-10">{title}</h3>
-            <p className="text-slate-600 leading-relaxed mb-6 transform translate-z-10">
-                {desc}
-            </p>
-            
-            <div className={`flex items-center gap-2 text-xs font-bold ${colorClass} uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-2 group-hover:translate-y-0`}>
-                <span>Learn More</span> <ArrowRight className="w-4 h-4" />
-            </div>
         </div>
-    );
-};
+        <h3 className="text-xl font-bold text-slate-900 mb-3">{title}</h3>
+        <p className="text-slate-600 text-sm leading-relaxed">
+            {desc}
+        </p>
+    </div>
+);

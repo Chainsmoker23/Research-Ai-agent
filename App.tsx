@@ -9,6 +9,7 @@ import { ReferenceList } from './components/ReferenceList';
 import { MethodologySelector } from './components/MethodologySelector';
 import { TemplateSelector } from './components/TemplateSelector';
 import { LatexPreview } from './components/LatexPreview';
+import { DraftingOrchestrator } from './components/DraftingOrchestrator';
 import { LandingPage } from './components/LandingPage';
 import { Footer } from './components/Footer';
 import { Loader2 } from 'lucide-react';
@@ -35,7 +36,8 @@ const App: React.FC = () => {
   const [references, setReferences] = useState<Reference[]>([]);
   const [methodologies, setMethodologies] = useState<MethodologyOption[]>([]);
   const [selectedMethodology, setSelectedMethodology] = useState<MethodologyOption | null>(null);
-  const [generatedLatex, setGeneratedLatex] = useState<string>("");
+  const [selectedTemplate, setSelectedTemplate] = useState<LatexTemplate | null>(null); // Added state
+  const [generatedLatex, setGeneratedLatex] = useState<string>(""); // Fallback
 
   // Cycle generic loading messages for non-granular phases
   useEffect(() => {
@@ -158,29 +160,11 @@ const App: React.FC = () => {
     setStep(AppStep.TEMPLATE_SELECTION);
   };
 
-  // Handler: Step 5 - Select Template -> Generate
-  const handleSelectTemplate = async (template: LatexTemplate) => {
+  // Handler: Step 5 - Select Template -> Start Drafting
+  const handleSelectTemplate = (template: LatexTemplate) => {
     if (!selectedMethodology || !selectedTopic) return;
-    
+    setSelectedTemplate(template);
     setStep(AppStep.DRAFTING);
-    setIsLoading(true);
-    setGeneratedLatex("% Initializing Research Agent...\n% Analyzing References...\n% Structuring Arguments...\n");
-
-    try {
-      await GeminiService.generateLatexManuscript(
-        selectedTopic.title,
-        selectedMethodology,
-        template.name,
-        references,
-        (chunk) => setGeneratedLatex(chunk)
-      );
-      setStep(AppStep.FINISHED);
-    } catch (error) {
-      console.error(error);
-      setGeneratedLatex(prev => prev + "\n% ERROR: Generation failed.");
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   // Render Helpers
@@ -237,10 +221,23 @@ const App: React.FC = () => {
         );
 
       case AppStep.DRAFTING:
-         return <LatexPreview content={generatedLatex} />;
+         if (selectedTopic && selectedMethodology && selectedTemplate) {
+           return (
+             <DraftingOrchestrator
+               topic={selectedTopic}
+               methodology={selectedMethodology}
+               template={selectedTemplate}
+               references={references}
+               onComplete={() => setStep(AppStep.FINISHED)}
+             />
+           );
+         }
+         return <div>Error: Missing selection data.</div>;
 
       case AppStep.FINISHED:
-        return <LatexPreview content={generatedLatex} />;
+        // Handled internally by DraftingOrchestrator when it switches to 'final'
+        // But if we navigate out and back, or if orchestrator calls onComplete:
+        return <div>Drafting Complete.</div>;
 
       default:
         return null;
