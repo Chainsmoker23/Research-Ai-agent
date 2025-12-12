@@ -1,8 +1,23 @@
+
 import React from 'react';
 import { Twitter, Github, Linkedin, Mail, Heart, MapPin, Phone } from 'lucide-react';
 import { LemurMascot } from './LemurMascot';
+import { AppStep } from '../types';
 
-export const Footer: React.FC = () => {
+interface FooterProps {
+  onNavigate?: (step: AppStep) => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
+  const handleNav = (e: React.MouseEvent, step: AppStep) => {
+    e.preventDefault();
+    if (onNavigate) {
+      onNavigate(step);
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   return (
     <footer className="bg-slate-950 text-slate-300 border-t border-slate-900">
       <div className="max-w-7xl mx-auto pt-16 pb-8 px-4 sm:px-6 lg:px-8">
@@ -17,7 +32,7 @@ export const Footer: React.FC = () => {
               <span className="text-xl font-bold text-white tracking-tight">ScholarAgent</span>
             </div>
             <p className="text-slate-400 text-sm leading-relaxed max-w-xs">
-              Autonomous research assistant powered by Gemini 1.5 Pro. Bridging the gap between raw data and rigorous academic publishing.
+              Autonomous research assistant powered by Gemini 3.0 Pro. Bridging the gap between raw data and rigorous academic publishing.
             </p>
             <div className="pt-4 space-y-2">
                 <div className="flex items-center gap-2 text-sm text-slate-400">
@@ -40,19 +55,32 @@ export const Footer: React.FC = () => {
             </div>
           </div>
 
-          {/* Product Links */}
+          {/* Product Links - Updated as requested */}
           <div>
-            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Platform</h3>
+            <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Products</h3>
             <ul className="space-y-3">
-              <li><a href="#" className="text-sm hover:text-indigo-400 transition-colors">Literature Review</a></li>
-              <li><a href="#" className="text-sm hover:text-indigo-400 transition-colors">Gap Analysis</a></li>
-              <li><a href="#" className="text-sm hover:text-indigo-400 transition-colors">LaTeX Drafting</a></li>
+              <li>
+                <button onClick={(e) => handleNav(e, AppStep.TOPIC_INPUT)} className="text-sm hover:text-indigo-400 transition-colors text-left">
+                  Discovery Agent
+                </button>
+              </li>
+              <li>
+                <button onClick={(e) => handleNav(e, AppStep.PEER_REVIEW)} className="text-sm hover:text-indigo-400 transition-colors text-left">
+                  Peer Reviewer Agent
+                </button>
+              </li>
+              <li>
+                 <button onClick={(e) => handleNav(e, AppStep.NOVELTY_CHECK)} className="text-sm hover:text-indigo-400 transition-colors text-left">
+                   Evaluation Agent
+                 </button>
+              </li>
+              <li><a href="#" className="text-sm hover:text-indigo-400 transition-colors">Drafting Agent</a></li>
               <li><a href="#" className="text-sm hover:text-indigo-400 transition-colors">Pricing</a></li>
-              <li><a href="#" className="text-sm hover:text-indigo-400 transition-colors">Enterprise</a></li>
+              <li><a href="#" className="text-sm hover:text-indigo-400 transition-colors">Enterprise API</a></li>
             </ul>
           </div>
 
-          {/* Resources Links - Cleaned up */}
+          {/* Resources Links */}
           <div>
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Resources</h3>
             <ul className="space-y-3">
@@ -60,6 +88,7 @@ export const Footer: React.FC = () => {
               <li><a href="#" className="text-sm hover:text-indigo-400 transition-colors">Help Center</a></li>
               <li><a href="#" className="text-sm hover:text-indigo-400 transition-colors">Citation Guide</a></li>
               <li><a href="#" className="text-sm hover:text-indigo-400 transition-colors">Ethics Policy</a></li>
+              <li><a href="#" className="text-sm hover:text-indigo-400 transition-colors">Community</a></li>
             </ul>
           </div>
 

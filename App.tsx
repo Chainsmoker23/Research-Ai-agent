@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { AppStep, Reference, MethodologyOption, LatexTemplate, ResearchTopic } from './types';
+import { AppStep, Reference, MethodologyOption, LatexTemplate, ResearchTopic, NoveltyAssessment } from './types';
 import { TEMPLATES } from './constants';
 import * as GeminiService from './services/geminiService';
 import * as CitationService from './services/citationService';
-import { TopicInput } from './components/TopicInput';
 import { TopicGenerator } from './components/TopicGenerator';
 import { ReferenceList } from './components/ReferenceList';
 import { MethodologySelector } from './components/MethodologySelector';
 import { TemplateSelector } from './components/TemplateSelector';
 import { LatexPreview } from './components/LatexPreview';
 import { DraftingOrchestrator } from './components/DraftingOrchestrator';
-import { LandingPage } from './components/LandingPage';
 import { Footer } from './components/Footer';
 import { Loader2 } from 'lucide-react';
 import { LemurMascot } from './components/LemurMascot';
 import { ResearchProgress } from './components/ResearchProgress';
+
+// Pages
+import { LandingPage } from './pages/LandingPage';
+import { ModeSelectionPage } from './pages/ModeSelectionPage';
+import { DiscoveryPage } from './pages/DiscoveryPage';
+import { ValidationPage } from './pages/ValidationPage';
+import { PeerReviewPage } from './pages/PeerReviewPage'; // New Import
 
 const App: React.FC = () => {
   // State
@@ -22,6 +27,9 @@ const App: React.FC = () => {
   const [domain, setDomain] = useState<string>("");
   const [topics, setTopics] = useState<ResearchTopic[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<ResearchTopic | null>(null);
+  
+  // Validation Mode State
+  const [noveltyAssessment, setNoveltyAssessment] = useState<NoveltyAssessment | null>(null);
   
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loadingMessage, setLoadingMessage] = useState<string>("Processing...");
@@ -41,7 +49,7 @@ const App: React.FC = () => {
 
   // Cycle generic loading messages for non-granular phases
   useEffect(() => {
-    if (!isLoading || step === AppStep.RESEARCHING) return;
+    if (!isLoading || (step !== AppStep.RESEARCHING && step !== AppStep.NOVELTY_CHECK)) return;
     
     const topicMessages = [
         "Reading verified abstracts...",
@@ -64,8 +72,19 @@ const App: React.FC = () => {
 
   // Handler: Start from Landing
   const handleStartApp = () => {
-    setStep(AppStep.TOPIC_INPUT);
+    setStep(AppStep.MODE_SELECTION);
   };
+
+  // Handler: Step 0 - Mode Selection
+  const handleModeSelection = (mode: 'discovery' | 'validation') => {
+    if (mode === 'discovery') {
+       setStep(AppStep.TOPIC_INPUT);
+    } else {
+       setStep(AppStep.NOVELTY_CHECK);
+    }
+  };
+
+  // --- DISCOVERY PATH ---
 
   // Handler: Step 1 - Domain Input -> Systematic Review
   const handleDomainSubmit = async (searchDomain: string) => {
@@ -137,11 +156,81 @@ const App: React.FC = () => {
      setStep(AppStep.TOPIC_INPUT);
   };
 
+  // --- VALIDATION PATH ---
+
+  const handleNoveltyAnalysis = async (title: string, overview: string) => {
+     setIsLoading(true);
+     // 1. First we need literature context to validate against. 
+     // We re-use the search function but with the title as query.
+     setLoadingPhase('searching');
+     setSearchLogs([]);
+     setLoadingMessage(`Scanning global databases for "${title}"...`);
+     
+     try {
+        const candidates = await GeminiService.searchLiterature(title, false, (agentName, count) => {
+            setSearchLogs(prev => [...prev, `${agentName}: Retrieved ${count} papers.`]);
+        });
+        
+        setLoadingPhase('validating');
+        const validatedRefs = await CitationService.validateBatch(candidates, (current, total, t) => {
+            setValidationProgress({ current, total, lastProcessed: t });
+        });
+        
+        setReferences(validatedRefs);
+
+        // 2. Assess Novelty
+        setLoadingPhase('analyzing');
+        setLoadingMessage("Reasoning Engine: Comparing your idea against retrieved papers...");
+        
+        const assessment = await GeminiService.assessTopicNovelty(title, overview, validatedRefs);
+        setNoveltyAssessment(assessment);
+        
+        // Temporarily create a topic object in case they proceed
+        setSelectedTopic({
+             id: 'user-topic',
+             title: title,
+             description: overview,
+             gap: assessment.analysis,
+             noveltyScore: assessment.score,
+             feasibility: 'Unknown'
+        });
+
+     } catch (e) {
+         console.error(e);
+         alert("Validation failed.");
+     } finally {
+         setIsLoading(false);
+     }
+  };
+
+  const handleValidationProceed = async () => {
+      // Proceed to Methodology using the validated refs and the user's topic
+      if (!selectedTopic) return;
+      
+      setIsLoading(true);
+      setLoadingPhase('analyzing');
+      setLoadingMessage("Simulating methodologies for your validated topic...");
+      
+      try {
+        const methods = await GeminiService.proposeMethodologies(selectedTopic.title, references);
+        setMethodologies(methods);
+        setStep(AppStep.METHODOLOGY_SELECTION);
+      } catch (e) {
+          console.error(e);
+          alert("Failed to generate methodologies");
+      } finally {
+          setIsLoading(false);
+      }
+  };
+
+  // --- COMMON PATH ---
+
   // Handler: Step 3 - Select Topic -> Method
   const handleSelectTopic = async (topic: ResearchTopic) => {
     setSelectedTopic(topic);
     setIsLoading(true);
-    setLoadingMessage("Analyzing methodology fit...");
+    setLoadingPhase('analyzing');
+    setLoadingMessage("Simulating rigorous research methodologies and checking feasibility...");
     try {
         const methods = await GeminiService.proposeMethodologies(topic.title, references);
         setMethodologies(methods);
@@ -169,16 +258,50 @@ const App: React.FC = () => {
 
   // Render Helpers
   const renderStep = () => {
+    // Global Loading Overlay for transitions that are not initial search
+    // If we are "analyzing" or doing heavy lifting between steps, show the rich loader.
+    const showRichLoader = isLoading; 
+
     switch (step) {
       case AppStep.LANDING:
         return <LandingPage onStart={handleStartApp} />;
 
-      case AppStep.TOPIC_INPUT:
-        return <TopicInput onSearch={handleDomainSubmit} isLoading={isLoading} />;
+      case AppStep.MODE_SELECTION:
+        return <ModeSelectionPage onSelectMode={handleModeSelection} />;
       
+      case AppStep.PEER_REVIEW: // New Case
+        return <PeerReviewPage onBack={handleStartApp} />;
+
+      case AppStep.TOPIC_INPUT:
+        return <DiscoveryPage onSearch={handleDomainSubmit} isLoading={isLoading} onBack={() => setStep(AppStep.MODE_SELECTION)} />;
+      
+      case AppStep.NOVELTY_CHECK:
+        if (showRichLoader) {
+             return (
+                <ResearchProgress 
+                   phase={loadingPhase}
+                   searchLogs={searchLogs}
+                   validationProgress={validationProgress}
+                   message={loadingMessage}
+                />
+             );
+        }
+        return (
+            <ValidationPage 
+                onAnalyze={handleNoveltyAnalysis}
+                isLoading={isLoading}
+                assessment={noveltyAssessment}
+                onProceed={handleValidationProceed}
+                onReset={() => setNoveltyAssessment(null)}
+                onBack={() => setStep(AppStep.MODE_SELECTION)}
+            />
+        );
+
       case AppStep.RESEARCHING:
-        if (isLoading && references.length === 0) {
-          return (
+        // Case 1: Searching/Validating (Initial) -> showRichLoader is true
+        // Case 2: Confirming Refs (Analyzing) -> showRichLoader is true
+        if (showRichLoader) {
+           return (
              <ResearchProgress 
                 phase={loadingPhase}
                 searchLogs={searchLogs}
@@ -200,9 +323,29 @@ const App: React.FC = () => {
         );
 
       case AppStep.TOPIC_GENERATION:
+         if (showRichLoader) {
+            return (
+                <ResearchProgress 
+                   phase={loadingPhase}
+                   searchLogs={searchLogs}
+                   validationProgress={validationProgress}
+                   message={loadingMessage}
+                />
+             );
+         }
          return <TopicGenerator topics={topics} onSelectTopic={handleSelectTopic} isLoading={isLoading} />;
 
       case AppStep.METHODOLOGY_SELECTION:
+        if (showRichLoader) {
+             return (
+                <ResearchProgress 
+                   phase={loadingPhase}
+                   searchLogs={searchLogs}
+                   validationProgress={validationProgress}
+                   message={loadingMessage}
+                />
+             );
+        }
         return (
           <MethodologySelector 
             options={methodologies} 
@@ -246,11 +389,22 @@ const App: React.FC = () => {
 
   // Step labels for desktop
   const STEP_LABELS = [
-    "Domain", "Literature", "Gap Analysis", "Methodology", "Template", "Draft"
+    "Mode", "Topic", "Literature", "Analysis", "Method", "Draft"
   ];
   
-  // Is research process active?
-  const isProcessActive = step !== AppStep.LANDING;
+  // Is research process active? (Updated to exclude Peer Review from std progress bar if desired, or handle it specially)
+  const isProcessActive = step !== AppStep.LANDING && step !== AppStep.PEER_REVIEW;
+
+  // Calculate generic progress index for header bar
+  const currentProgressIndex = () => {
+      if (step === AppStep.MODE_SELECTION) return 0;
+      if (step === AppStep.TOPIC_INPUT || step === AppStep.NOVELTY_CHECK) return 1;
+      if (step === AppStep.RESEARCHING) return 2;
+      if (step === AppStep.TOPIC_GENERATION) return 3;
+      if (step === AppStep.METHODOLOGY_SELECTION) return 4;
+      if (step >= AppStep.TEMPLATE_SELECTION) return 5;
+      return 0;
+  };
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-slate-50">
@@ -283,9 +437,9 @@ const App: React.FC = () => {
           {isProcessActive && (
             <div className="hidden md:flex items-center gap-2 text-sm overflow-x-auto scrollbar-hide">
               {STEP_LABELS.map((label, idx) => {
-                const currentStep = step === AppStep.FINISHED ? 6 : step;
-                let isActive = currentStep === idx;
-                let isCompleted = currentStep > idx;
+                const currentIdx = currentProgressIndex();
+                let isActive = currentIdx === idx;
+                let isCompleted = currentIdx > idx;
                 
                 return (
                   <div key={label} className="flex items-center whitespace-nowrap">
@@ -304,12 +458,19 @@ const App: React.FC = () => {
             </div>
           )}
 
+          {/* Peer Review Title Overlay */}
+          {step === AppStep.PEER_REVIEW && (
+             <div className="hidden md:block text-sm font-bold text-slate-600 uppercase tracking-wider">
+                Peer Review Module
+             </div>
+          )}
+
           {/* Mobile Step Indicator - Only show if active */}
           {isProcessActive && (
             <div className="md:hidden flex items-center gap-2">
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Step</span>
               <span className="flex items-center justify-center bg-indigo-100 text-indigo-700 text-sm font-bold w-6 h-6 rounded-full">
-                {(step === AppStep.FINISHED ? 5 : step) + 1}
+                {currentProgressIndex() + 1}
               </span>
               <span className="text-slate-300">/</span>
               <span className="text-sm text-slate-400 font-medium">6</span>
@@ -317,7 +478,7 @@ const App: React.FC = () => {
           )}
 
           {/* Spacer or simple button if on landing */}
-          {!isProcessActive ? (
+          {step === AppStep.LANDING ? (
              <div className="hidden md:block">
                 <button 
                   onClick={handleStartApp}
@@ -333,12 +494,12 @@ const App: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <main className={`flex-grow flex flex-col items-center justify-start ${isProcessActive ? 'p-4 md:p-8' : ''}`}>
+      <main className={`flex-grow flex flex-col items-center justify-start ${isProcessActive || step === AppStep.PEER_REVIEW ? 'p-4 md:p-8' : ''}`}>
         {renderStep()}
       </main>
 
       {/* Global Footer */}
-      <Footer />
+      <Footer onNavigate={(newStep) => setStep(newStep)} />
     </div>
   );
 };

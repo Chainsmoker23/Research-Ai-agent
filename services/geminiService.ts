@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { Reference, MethodologyOption, ResearchTopic, AuthorMetadata } from "../types";
+import { Reference, MethodologyOption, ResearchTopic, AuthorMetadata, NoveltyAssessment } from "../types";
 
 // Helper to get client
 const getClient = () => {
@@ -8,6 +8,61 @@ const getClient = () => {
     throw new Error("API_KEY environment variable is not set");
   }
   return new GoogleGenAI({ apiKey });
+};
+
+// --- NEW: NOVELTY CHECKER ---
+export const assessTopicNovelty = async (title: string, overview: string, references: Reference[]): Promise<NoveltyAssessment> => {
+  const ai = getClient();
+  const modelId = "gemini-3-pro-preview";
+
+  const refContext = references.slice(0, 15).map(r => `- ${r.title} (${r.year})`).join("\n");
+
+  const prompt = `
+    ROLE: Senior Journal Editor & Peer Reviewer.
+    TASK: Evaluate the novelty and acceptance probability of a user's proposed research idea against the retrieved literature.
+
+    USER PROPOSAL:
+    Title: "${title}"
+    Overview: "${overview}"
+
+    EXISTING LITERATURE FOUND:
+    ${refContext}
+
+    INSTRUCTIONS:
+    1. Check if the user's idea is already covered by the literature.
+    2. Estimate the "Novelty Score" (0-100).
+    3. Estimate "Acceptance Probability" (e.g., "High", "Medium", "Low" chance at top tier venues).
+    4. Provide a critique/analysis.
+
+    Output JSON matching the schema.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: modelId,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            score: { type: Type.INTEGER },
+            verdict: { type: Type.STRING, enum: ['High', 'Medium', 'Low'] },
+            acceptanceProbability: { type: Type.STRING },
+            analysis: { type: Type.STRING },
+            similarPapers: { type: Type.ARRAY, items: { type: Type.STRING } },
+            recommendation: { type: Type.STRING, enum: ['PROCEED', 'REFINE', 'pivot'] }
+          },
+          required: ["score", "verdict", "acceptanceProbability", "analysis", "similarPapers", "recommendation"]
+        }
+      }
+    });
+    
+    return JSON.parse(response.text || "{}") as NoveltyAssessment;
+  } catch (error) {
+    console.error("Novelty assessment failed:", error);
+    throw error;
+  }
 };
 
 // Now accepts references to base topics on actual literature

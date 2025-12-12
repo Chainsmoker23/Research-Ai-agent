@@ -1,12 +1,16 @@
+
 export enum AppStep {
   LANDING = -1,
-  TOPIC_INPUT = 0,
-  RESEARCHING = 1,
-  TOPIC_GENERATION = 2,
-  METHODOLOGY_SELECTION = 3,
-  TEMPLATE_SELECTION = 4,
-  DRAFTING = 5,
-  FINISHED = 6,
+  MODE_SELECTION = 0,
+  TOPIC_INPUT = 1,    // Discovery Path
+  NOVELTY_CHECK = 2,  // Validation Path
+  RESEARCHING = 3,
+  TOPIC_GENERATION = 4,
+  METHODOLOGY_SELECTION = 5,
+  TEMPLATE_SELECTION = 6,
+  DRAFTING = 7,
+  FINISHED = 8,
+  PEER_REVIEW = 9,    // New Step
 }
 
 export interface ResearchTopic {
@@ -16,6 +20,15 @@ export interface ResearchTopic {
   gap: string;
   noveltyScore: number; // 1-100
   feasibility: string; // High, Medium, Low
+}
+
+export interface NoveltyAssessment {
+  score: number;
+  verdict: 'High' | 'Medium' | 'Low';
+  acceptanceProbability: string; // e.g. "75%"
+  analysis: string; // Detailed breakdown
+  similarPapers: string[]; // Titles of papers that might conflict
+  recommendation: 'PROCEED' | 'REFINE' | 'pivot';
 }
 
 export interface Reference {
@@ -70,4 +83,34 @@ export interface ResearchState {
   generatedLatex: string;
   logs: string[];
   authorMetadata?: AuthorMetadata;
+}
+
+// --- PEER REVIEW TYPES ---
+
+export interface ReviewAgentResult {
+  agentName: string;
+  role: string;
+  score: number; // 1-10
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+  verdict: 'Accept' | 'Minor Revision' | 'Major Revision' | 'Reject';
+}
+
+export interface ReferenceAudit {
+  total: number;
+  verified: number;
+  unverified: number;
+  hallucinationRate: number; // percentage
+  suspiciousRefs: string[]; // Titles of unverified refs
+  healthScore: number; // 0-100
+}
+
+export interface ReviewReport {
+  overallScore: number; // 0-100
+  finalVerdict: 'Accept' | 'Minor Revision' | 'Major Revision' | 'Reject';
+  acceptanceProbability: string;
+  summary: string;
+  agentReviews: ReviewAgentResult[];
+  referenceAudit?: ReferenceAudit;
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Loader2, Database, ShieldCheck, Search, Star } from 'lucide-react';
+import { Loader2, Database, ShieldCheck, Search, Star, BrainCircuit } from 'lucide-react';
 import { LemurMascot } from './LemurMascot';
 
 interface ResearchProgressProps {
@@ -23,38 +23,50 @@ const SEARCH_JOKES = [
   "Do you think she'll be mad if I'm late? She has a very loud screech.",
 ];
 
+const ANALYZING_THOUGHTS = [
+    "Thinking... thinking... wait, this hypothesis is spicy! 🌶️",
+    "Connecting dots that shouldn't be connected... science! 🧪",
+    "Generating novelty scores. Please hold your applause. 👏",
+    "Simulating a peer reviewer having a bad day... 👿",
+    "Optimizing for maximum impact factor. 📈",
+    "My neural networks are tingling. 🧠",
+    "Checking for logical fallacies... looks clean so far. 🧹"
+];
+
 export const ResearchProgress: React.FC<ResearchProgressProps> = ({ phase, searchLogs, validationProgress, message }) => {
   const [paperCount, setPaperCount] = useState(0);
   const [lastLogIndex, setLastLogIndex] = useState(0);
   const [floatingPapers, setFloatingPapers] = useState<{id: number, left: number, delay: number}[]>([]);
   
   // Joke State
-  const [currentJoke, setCurrentJoke] = useState(SEARCH_JOKES[0]);
+  const [currentThought, setCurrentThought] = useState("");
   const [jokeIndex, setJokeIndex] = useState(0);
-  const [showJoke, setShowJoke] = useState(false);
+  const [showThought, setShowThought] = useState(false);
 
-  // Cycle jokes during search phase
+  // Cycle thoughts/jokes based on phase
   useEffect(() => {
-    if (phase !== 'searching') {
-        setShowJoke(false);
-        return;
-    }
+    let interval: any;
+    const sourceArray = phase === 'analyzing' ? ANALYZING_THOUGHTS : SEARCH_JOKES;
+    
+    // Initial set
+    setCurrentThought(sourceArray[0]);
+    setShowThought(true);
 
-    setShowJoke(true);
-    const interval = setInterval(() => {
-        setJokeIndex(prev => (prev + 1) % SEARCH_JOKES.length);
-    }, 5000); // New joke every 5 seconds
+    interval = setInterval(() => {
+        setJokeIndex(prev => {
+            const next = (prev + 1) % sourceArray.length;
+            setCurrentThought(sourceArray[next]);
+            return next;
+        });
+    }, 4500); 
 
     return () => clearInterval(interval);
   }, [phase]);
 
-  // Update text when index changes
+  // Parse logs to find paper counts and trigger animations (only during search)
   useEffect(() => {
-      setCurrentJoke(SEARCH_JOKES[jokeIndex]);
-  }, [jokeIndex]);
+    if (phase !== 'searching') return;
 
-  // Parse logs to find paper counts and trigger animations
-  useEffect(() => {
     if (searchLogs.length > lastLogIndex) {
       const latestLog = searchLogs[searchLogs.length - 1];
       // Try to extract number from "Retrieved X candidate papers"
@@ -65,10 +77,10 @@ export const ResearchProgress: React.FC<ResearchProgressProps> = ({ phase, searc
         setPaperCount(prev => prev + count);
         
         // Interrupt joke with excitement
-        const prevJoke = currentJoke;
-        setCurrentJoke(count > 5 ? "Jackpot! Look at all these!" : "Ooh! Found some!");
+        const prevJoke = currentThought;
+        setCurrentThought(count > 5 ? "Jackpot! Look at all these!" : "Ooh! Found some!");
         // Restore joke after 2 seconds
-        setTimeout(() => setCurrentJoke(SEARCH_JOKES[(jokeIndex + 1) % SEARCH_JOKES.length]), 2000);
+        setTimeout(() => setCurrentThought(prevJoke), 2000);
         
         // Trigger generic particle explosion of "papers"
         const newPapers = Array.from({ length: 5 }).map((_, i) => ({
@@ -85,12 +97,13 @@ export const ResearchProgress: React.FC<ResearchProgressProps> = ({ phase, searc
       }
       setLastLogIndex(searchLogs.length);
     }
-  }, [searchLogs, lastLogIndex]);
+  }, [searchLogs, lastLogIndex, phase, currentThought]);
 
   // Determine Mascot Mode
   const getMascotVariant = () => {
     if (phase === 'searching') return 'telescope';
     if (phase === 'validating') return 'bucket';
+    if (phase === 'analyzing') return 'thinking'; // Changed from pleading to thinking
     return 'default';
   };
 
@@ -103,7 +116,7 @@ export const ResearchProgress: React.FC<ResearchProgressProps> = ({ phase, searc
          <div className="absolute bottom-10 right-10 w-40 h-40 bg-purple-200 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
       </div>
 
-      {/* Floating Papers Animation Layer */}
+      {/* Floating Papers Animation Layer (Only search) */}
       {floatingPapers.map(p => (
           <div 
             key={p.id}
@@ -126,32 +139,33 @@ export const ResearchProgress: React.FC<ResearchProgressProps> = ({ phase, searc
         <div className="relative transform hover:scale-105 transition-transform duration-500">
             
             {/* Comic Speech Bubble */}
-            {showJoke && (
+            {showThought && (
                 <div className={`
                     absolute z-30 bg-white border-2 border-slate-900 shadow-xl animate-bounce-slow
                     
-                    /* Mobile: Centered above head */
-                    w-[220px] p-4 rounded-2xl
-                    -top-40 left-1/2 -translate-x-1/2
+                    /* Mobile: Centered above head, slightly closer */
+                    w-[200px] p-3 rounded-2xl
+                    -top-32 left-1/2 -translate-x-1/2
                     
-                    /* Desktop: Top Right Side */
-                    md:w-64 md:p-5 md:rounded-3xl md:rounded-bl-none
-                    md:-top-32 md:-right-44 md:left-auto md:translate-x-0
+                    /* Desktop: Tucked nicely near head */
+                    md:w-56 md:p-4 md:rounded-3xl md:rounded-bl-none
+                    md:-top-20 md:-right-24 md:left-auto md:translate-x-0
                 `}>
                     <p className="text-xs md:text-sm font-bold text-slate-900 italic leading-snug text-center md:text-left">
-                        "{currentJoke}"
+                        "{currentThought}"
                     </p>
 
                     {/* Mobile Tail (Centered Bottom pointing down) */}
                     <div className="md:hidden absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-b-2 border-r-2 border-slate-900 transform rotate-45"></div>
 
-                    {/* Desktop Tail (Bottom Left pointing to mascot) */}
+                    {/* Desktop Tail (Bottom Left pointing to mascot head) */}
                     <div className="hidden md:block absolute -bottom-3 left-0 w-6 h-6 bg-white border-b-2 border-r-2 border-slate-900 transform rotate-12 skew-x-12"></div>
                 </div>
             )}
 
+            {/* REDUCED MASCOT SIZE as requested */}
             <LemurMascot 
-                className="w-64 h-64 md:w-80 md:h-80" 
+                className="w-48 h-48 md:w-56 md:h-56" 
                 variant={getMascotVariant()} 
             />
             
@@ -169,7 +183,7 @@ export const ResearchProgress: React.FC<ResearchProgressProps> = ({ phase, searc
            <div className="flex items-center justify-center gap-2 mb-3">
               {phase === 'searching' && <Search className="w-5 h-5 text-indigo-600 animate-pulse" />}
               {phase === 'validating' && <ShieldCheck className="w-5 h-5 text-emerald-600 animate-pulse" />}
-              {phase === 'analyzing' && <Loader2 className="w-5 h-5 text-amber-600 animate-spin" />}
+              {phase === 'analyzing' && <BrainCircuit className="w-5 h-5 text-amber-600 animate-pulse" />}
               <span className="text-sm font-bold uppercase tracking-widest text-slate-500">{phase.toUpperCase()}</span>
            </div>
            <p className="text-xl font-bold text-slate-900 leading-tight">
@@ -205,6 +219,16 @@ export const ResearchProgress: React.FC<ResearchProgressProps> = ({ phase, searc
                             <div className="absolute inset-0 bg-white/20 animate-[shimmer_2s_infinite]"></div>
                         </div>
                      </div>
+                </div>
+            )}
+            
+            {phase === 'analyzing' && (
+                <div className="flex justify-center">
+                   <div className="flex gap-1.5">
+                       <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                       <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                       <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce"></div>
+                   </div>
                 </div>
             )}
         </div>

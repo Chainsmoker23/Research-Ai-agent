@@ -1,13 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { Search, ArrowRight, Globe, Sparkles, Zap, Atom, ShieldCheck, ArrowLeft } from 'lucide-react';
 
-interface TopicInputProps {
+interface DiscoveryPageProps {
   onSearch: (topic: string) => void;
   isLoading: boolean;
   onBack: () => void;
 }
 
-export const TopicInput: React.FC<TopicInputProps> = ({ onSearch, isLoading, onBack }) => {
+export const DiscoveryPage: React.FC<DiscoveryPageProps> = ({ onSearch, isLoading, onBack }) => {
   const [domain, setDomain] = useState('');
   const [nodes, setNodes] = useState<{x: number, y: number, r: number, vx: number, vy: number}[]>([]);
 

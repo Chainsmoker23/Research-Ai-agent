@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Star, Zap, Infinity } from 'lucide-react';
+import { Check, Star, Zap, Infinity, BrainCircuit, Sliders } from 'lucide-react';
 import { LemurMascot } from './LemurMascot';
 
 const MASCOT_THOUGHTS = [
@@ -7,7 +7,7 @@ const MASCOT_THOUGHTS = [
   "King Julien says: 'Subscribe or I bite!' 👑",
   "My wife needs a diamond mango. Help a lemur out? 🥭",
   "The zoo is expensive. I need premium funding! 🦁",
-  "Mort is staring at me. Buy 'Ultimate' to save me! 👀",
+  "Mort is staring at me. Buy 'Pro' to save me! 👀",
   "I trade physics papers for vanilla beans! 🍦",
   "No penguins were harmed in this pricing. 🐧"
 ];
@@ -32,47 +32,39 @@ export const PricingSection: React.FC = () => {
       projects: 3,
       description: 'Experience the power of ScholarAgent.',
       isSub: false,
+      features: []
     },
     {
       name: 'Starter',
       price: '$1',
       period: 'one-time',
-      projects: 5,
-      description: 'Perfect for a single assignment.',
+      projects: 10,
+      description: 'Perfect for specific assignments.',
       isSub: false,
+      features: []
     },
     {
-      name: 'Student',
+      name: 'Power User',
       price: '$2',
       period: 'one-time',
-      projects: 10,
-      description: 'Enough for a full semester.',
+      projects: 20,
+      description: 'Deep dive capacity for serious work.',
       isSub: false,
+      features: []
     },
     {
-      name: 'Researcher',
-      price: '$5',
-      period: 'one-time',
-      projects: 50,
-      description: 'Ideal for thesis work.',
-      isSub: false,
-      highlight: true
-    },
-    {
-      name: 'Lab',
+      name: 'Pro',
       price: '$10',
-      period: 'one-time',
-      projects: 100,
-      description: 'For collaborative teams.',
-      isSub: false,
-    },
-    {
-      name: 'Ultimate',
-      price: '$50',
       period: '/ month',
       projects: 'Unlimited',
-      description: 'Unconstrained discovery.',
+      description: 'The complete autonomous research suite.',
       isSub: true,
+      highlight: true,
+      features: [
+          'High Quality Reasoning Engine',
+          'All Model Selection (Gemini 3.0)',
+          'Priority Processing'
+      ]
     }
   ];
 
@@ -82,7 +74,7 @@ export const PricingSection: React.FC = () => {
         <div className="text-center mb-16">
           <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-slate-900">Fair Pricing for Every Scholar</h2>
           <p className="text-slate-500 text-lg max-w-2xl mx-auto">
-             Start for free, then pay per project pack or subscribe for unlimited access.
+             Start for free, grab a project pack, or subscribe for unlimited power.
           </p>
         </div>
 
@@ -99,12 +91,12 @@ export const PricingSection: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative items-start">
           {plans.map((plan) => (
             <div 
               key={plan.name} 
               className={`
-                relative flex flex-col p-6 rounded-2xl border transition-all duration-300
+                relative flex flex-col p-6 rounded-2xl border transition-all duration-300 h-full
                 ${plan.highlight 
                    ? 'bg-white border-indigo-200 shadow-xl scale-105 z-10 ring-4 ring-indigo-50' 
                    : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-lg'
@@ -113,14 +105,14 @@ export const PricingSection: React.FC = () => {
               `}
             >
               {plan.highlight && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide shadow-md">
-                  Best Value
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide shadow-md whitespace-nowrap">
+                  Most Popular
                 </div>
               )}
-              {plan.isSub && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-1 shadow-md">
-                  <Star className="w-3 h-3 fill-current" /> Ultimate
-                </div>
+              {plan.isSub && !plan.highlight && (
+                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-1 shadow-md">
+                   <Star className="w-3 h-3 fill-current" /> Subscription
+                 </div>
               )}
 
               <div className="mb-4">
@@ -133,7 +125,7 @@ export const PricingSection: React.FC = () => {
                 <span className="text-xs text-slate-500 uppercase font-medium">{plan.period}</span>
               </div>
 
-              <div className={`flex items-center gap-2 mb-8 p-3 rounded-lg border ${plan.highlight ? 'bg-indigo-50 border-indigo-100' : 'bg-slate-50 border-slate-100'}`}>
+              <div className={`flex items-center gap-2 mb-6 p-3 rounded-lg border ${plan.highlight ? 'bg-indigo-50 border-indigo-100' : 'bg-slate-50 border-slate-100'}`}>
                 {plan.projects === 'Unlimited' ? (
                    <Infinity className="w-5 h-5 text-amber-500" />
                 ) : (
@@ -143,6 +135,18 @@ export const PricingSection: React.FC = () => {
                   {plan.projects === 'Unlimited' ? 'Unlimited Projects' : `${plan.projects} Projects`}
                 </span>
               </div>
+
+              {/* Extra Features for Pro */}
+              {plan.features.length > 0 && (
+                  <div className="mb-6 space-y-3">
+                      {plan.features.map((feature, i) => (
+                          <div key={i} className="flex items-start gap-2 text-xs text-slate-700">
+                              <Check className="w-3 h-3 text-green-500 mt-0.5 shrink-0" />
+                              <span className="font-medium">{feature}</span>
+                          </div>
+                      ))}
+                  </div>
+              )}
 
               <div className="mt-auto">
                 <button 
@@ -154,7 +158,7 @@ export const PricingSection: React.FC = () => {
                     }
                   `}
                 >
-                  {plan.price === '$0' ? 'Start Free' : 'Get Started'}
+                  {plan.price === '$0' ? 'Start Free' : plan.isSub ? 'Subscribe Now' : 'Buy Pack'}
                 </button>
               </div>
             </div>

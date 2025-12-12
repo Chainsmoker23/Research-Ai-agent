@@ -2,7 +2,7 @@ import React from 'react';
 
 interface LemurMascotProps {
   className?: string;
-  variant?: 'default' | 'telescope' | 'bucket' | 'pleading';
+  variant?: 'default' | 'telescope' | 'bucket' | 'pleading' | 'thinking';
 }
 
 export const LemurMascot: React.FC<LemurMascotProps> = ({ className = "w-64 h-64", variant = 'default' }) => {
@@ -69,9 +69,14 @@ export const LemurMascot: React.FC<LemurMascotProps> = ({ className = "w-64 h-64
                 25% { transform: translateY(1px); }
                 75% { transform: translateY(-1px); }
             }
+            @keyframes thinking-float {
+                0%, 100% { transform: translateY(0) rotate(0deg); }
+                50% { transform: translateY(-2px) rotate(1deg); }
+            }
             .lemur-tail { transform-origin: 130px 140px; animation: sway 4s ease-in-out infinite; }
             .lemur-head { animation: bob 5s ease-in-out infinite; }
             .lemur-head-plead { animation: plead-tremble 3s ease-in-out infinite; }
+            .lemur-head-thinking { animation: thinking-float 6s ease-in-out infinite; }
             .lemur-eye { transform-origin: center; animation: blink 4s infinite; }
             .lemur-tassel { transform-origin: 138px 55px; animation: tassel-swing 3s ease-in-out infinite; }
             .lemur-telescope { transform-origin: 100px 95px; animation: telescope-scan 6s ease-in-out infinite; }
@@ -107,7 +112,14 @@ export const LemurMascot: React.FC<LemurMascotProps> = ({ className = "w-64 h-64
       <ellipse cx="100" cy="150" rx="25" ry="35" fill="#ffffff" opacity="0.6" />
 
       {/* Head Group */}
-      <g className={variant === 'pleading' ? "lemur-head-plead" : "lemur-head"} transform="translate(0, -10)">
+      <g 
+        className={
+            variant === 'pleading' ? "lemur-head-plead" : 
+            variant === 'thinking' ? "lemur-head-thinking" : 
+            "lemur-head"
+        } 
+        transform="translate(0, -10)"
+      >
         {/* Ears */}
         <path d="M65 65 L55 40 L85 55 Z" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="2" strokeLinejoin="round" />
         <path d="M135 65 L145 40 L115 55 Z" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="2" strokeLinejoin="round" />
@@ -149,6 +161,22 @@ export const LemurMascot: React.FC<LemurMascotProps> = ({ className = "w-64 h-64
                   <path d="M112 82 Q 118 78 125 80" stroke="#cbd5e1" strokeWidth="2" fill="none" />
                </g>
            </g>
+        ) : variant === 'thinking' ? (
+           <g>
+               {/* Thinking Eyes: Looking up and to the right, focused */}
+               <g className="lemur-eye">
+                  <circle cx="82" cy="92" r="4.5" fill="#fbbf24" />
+                  <circle cx="84" cy="90" r="2" fill="#000" />
+               </g>
+               <g className="lemur-eye">
+                  <circle cx="118" cy="92" r="4.5" fill="#fbbf24" />
+                  <circle cx="120" cy="90" r="2" fill="#000" />
+               </g>
+               
+               {/* Furrowed Brow (Concentration) */}
+               <path d="M75 82 Q 82 85 88 82" stroke="#cbd5e1" strokeWidth="2" fill="none" />
+               <path d="M112 82 Q 118 85 125 82" stroke="#cbd5e1" strokeWidth="2" fill="none" />
+           </g>
         ) : (
            <g>
               <g className="lemur-eye">
@@ -166,9 +194,11 @@ export const LemurMascot: React.FC<LemurMascotProps> = ({ className = "w-64 h-64
         <path d="M96 108 Q 100 111 104 108 L 100 113 Z" fill="#0f172a" />
         
         {/* Mouth */}
-        {variant === 'pleading' && (
+        {variant === 'pleading' ? (
              <path d="M96 118 Q 100 116 104 118" stroke="#1e293b" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-        )}
+        ) : variant === 'thinking' ? (
+             <path d="M98 118 L 102 118" stroke="#1e293b" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+        ) : null}
 
         {/* Graduation Cap */}
         <path d="M60 55 L100 35 L140 55 L100 75 Z" fill="#1e293b" stroke="#334155" strokeWidth="1" />
@@ -186,12 +216,11 @@ export const LemurMascot: React.FC<LemurMascotProps> = ({ className = "w-64 h-64
       {/* VARIANT: TELESCOPE */}
       {variant === 'telescope' && (
          <g className="lemur-telescope">
-            {/* Left Arm (Back) - White fur connecting body to top of scope */}
+            {/* Left Arm (Back) */}
             <path d="M85 145 Q 75 120 90 98" stroke="#cbd5e1" strokeWidth="12" fill="none" strokeLinecap="round" />
             
-            {/* Left Hand (Back) - Black skin gripping top of telescope */}
+            {/* Left Hand (Back) */}
             <g transform="rotate(-12 100 95)">
-                 {/* Fingers curling over the top from the back side */}
                  <ellipse cx="98" cy="85" rx="3.5" ry="5.5" fill="#0f172a" transform="rotate(-10 98 85)" />
                  <ellipse cx="106" cy="84" rx="3.5" ry="5.5" fill="#0f172a" transform="rotate(0 106 84)" />
                  <ellipse cx="114" cy="85" rx="3.5" ry="5.5" fill="#0f172a" transform="rotate(10 114 85)" />
@@ -207,57 +236,30 @@ export const LemurMascot: React.FC<LemurMascotProps> = ({ className = "w-64 h-64
                 <ellipse cx="182" cy="96" rx="3" ry="11" fill="url(#lensGrad)" />
             </g>
 
-            {/* Right Arm (Front) - White fur */}
+            {/* Right Arm (Front) */}
             <path d="M115 150 Q 135 140 145 115" stroke="#cbd5e1" strokeWidth="12" fill="none" strokeLinecap="round" />
             
-            {/* Right Hand (Front) - Detailed Paw Structure with Joints */}
+            {/* Right Hand (Front) */}
             <g transform="rotate(-12 100 95)">
-                {/* Furry Wrist connection */}
                 <circle cx="145" cy="116" r="7.5" fill="#cbd5e1" />
-                
-                {/* Main Palm Base - Black Skin */}
                 <path d="M138 112 Q 136 122 146 125 Q 156 126 160 115 L 155 108 Z" fill="#0f172a" />
-
-                {/* THUMB - Gripping bottom */}
-                {/* Thumb Base Joint */}
                 <ellipse cx="140" cy="118" rx="4.5" ry="6" fill="#1e293b" transform="rotate(-40 140 118)" />
-                {/* Thumb Tip (Curving under telescope) */}
                 <path d="M138 122 Q 142 128 150 126" stroke="#0f172a" strokeWidth="5" fill="none" strokeLinecap="round" />
-                {/* Thumb Nail */}
                 <path d="M149 126 Q 151 126 152 124" stroke="#475569" strokeWidth="2" fill="none" opacity="0.8" />
-
-                {/* FINGER 1 (Index) */}
-                {/* Proximal Phalanx */}
                 <path d="M148 110 L 150 102" stroke="#0f172a" strokeWidth="5" strokeLinecap="round" />
-                {/* Knuckle Definition */}
                 <circle cx="150" cy="102" r="3" fill="#1e293b" />
-                {/* Distal Phalanx (Wrapping over) */}
                 <path d="M150 102 Q 152 96 146 95" fill="none" stroke="#0f172a" strokeWidth="4.5" strokeLinecap="round" />
-                {/* Nail */}
                 <ellipse cx="146" cy="95" rx="1.5" ry="1" fill="#94a3b8" transform="rotate(-20 146 95)" />
-
-                {/* FINGER 2 (Middle) */}
-                {/* Proximal Phalanx */}
                 <path d="M154 112 L 158 100" stroke="#0f172a" strokeWidth="5" strokeLinecap="round" />
-                {/* Knuckle */}
                 <circle cx="158" cy="100" r="3" fill="#1e293b" />
-                {/* Distal Phalanx */}
                 <path d="M158 100 Q 162 92 154 90" fill="none" stroke="#0f172a" strokeWidth="4.5" strokeLinecap="round" />
-                {/* Nail */}
                 <ellipse cx="154" cy="90" rx="1.5" ry="1" fill="#94a3b8" transform="rotate(-10 154 90)" />
-
-                {/* FINGER 3 (Ring) */}
-                {/* Proximal Phalanx */}
                 <path d="M160 115 L 165 105" stroke="#0f172a" strokeWidth="5" strokeLinecap="round" />
-                {/* Knuckle */}
                 <circle cx="165" cy="105" r="3" fill="#1e293b" />
-                {/* Distal Phalanx */}
                 <path d="M165 105 Q 169 98 163 96" fill="none" stroke="#0f172a" strokeWidth="4.5" strokeLinecap="round" />
-                 {/* Nail */}
                 <ellipse cx="163" cy="96" rx="1.5" ry="1" fill="#94a3b8" transform="rotate(0 163 96)" />
             </g>
             
-            {/* Glinting Star */}
             <path className="glint-star" d="M182 85 L184 94 L193 96 L184 98 L182 107 L180 98 L171 96 L180 94 Z" fill="#ffffff" />
          </g>
       )}
@@ -265,20 +267,17 @@ export const LemurMascot: React.FC<LemurMascotProps> = ({ className = "w-64 h-64
       {/* VARIANT: BUCKET */}
       {variant === 'bucket' && (
           <g className="lemur-bucket">
-              {/* Bucket Body */}
               <path d="M70 140 L 80 185 L 140 185 L 150 140 Z" fill="#3b82f6" stroke="#1e3a8a" strokeWidth="2" />
               <ellipse cx="110" cy="140" rx="40" ry="8" fill="#60a5fa" stroke="#1e3a8a" strokeWidth="2" />
               <ellipse cx="110" cy="140" rx="35" ry="6" fill="#1e3a8a" opacity="0.3" />
               <path d="M70 140 Q 110 100 150 140" fill="none" stroke="#94a3b8" strokeWidth="4" />
-              
-              {/* Papers */}
               <rect x="90" y="125" width="20" height="25" fill="#fff" stroke="#cbd5e1" transform="rotate(-15 100 140)" />
               <rect x="110" y="120" width="20" height="25" fill="#fff" stroke="#cbd5e1" transform="rotate(10 110 140)" />
           </g>
       )}
 
-      {/* DEFAULT ARMS / BOOK */}
-      {variant === 'default' && (
+      {/* DEFAULT ARMS / BOOK / THINKING */}
+      {(variant === 'default' || variant === 'thinking') && (
         <>
             <rect x="65" y="155" width="70" height="45" rx="3" fill="#4338ca" transform="rotate(-6 100 180)" filter="url(#shadow)" />
             <path d="M70 160 L130 160" stroke="#818cf8" strokeWidth="2" transform="rotate(-6 100 180)" />
@@ -289,13 +288,11 @@ export const LemurMascot: React.FC<LemurMascotProps> = ({ className = "w-64 h-64
         </>
       )}
 
-       {/* PLEADING HANDS (Holding together) */}
+       {/* PLEADING HANDS */}
        {variant === 'pleading' && (
         <>
-           {/* Paws clasped together in front of chest */}
            <path d="M80 150 Q 100 160 100 140" fill="none" stroke="#cbd5e1" strokeWidth="10" strokeLinecap="round" />
            <path d="M120 150 Q 100 160 100 140" fill="none" stroke="#cbd5e1" strokeWidth="10" strokeLinecap="round" />
-           {/* Hands/Paws */}
            <circle cx="100" cy="140" r="8" fill="#1e293b" />
         </>
        )}
