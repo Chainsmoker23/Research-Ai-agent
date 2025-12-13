@@ -1,22 +1,11 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
-import { Reference, MethodologyOption, ResearchTopic, AuthorMetadata, NoveltyAssessment } from "../types";
-import * as CitationService from './citationService';
-
-// Helper to get client
-const getClient = () => {
-  // In Vite, environment variables are accessed via import.meta.env
-  // Variables must be prefixed with VITE_ to be available in the browser
-  const apiKey = import.meta.env.VITE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("API_KEY environment variable is not set. Please check your .env file and ensure it has VITE_API_KEY or VITE_GEMINI_API_KEY defined.");
-  }
-  return new GoogleGenAI({ apiKey });
-};
+import { Type } from "@google/genai";
+import { Reference, MethodologyOption, ResearchTopic, NoveltyAssessment } from "../types";
+import { getGeminiClient } from "./geminiClient";
 
 // --- NEW: NOVELTY CHECKER ---
 export const assessTopicNovelty = async (title: string, overview: string, references: Reference[]): Promise<NoveltyAssessment> => {
-  const ai = getClient();
+  const ai = getGeminiClient('VALIDATION');
   const modelId = "gemini-3-pro-preview";
 
   const refContext = references.slice(0, 15).map(r => `- ${r.title} (${r.year})`).join("\n");
@@ -71,7 +60,7 @@ export const assessTopicNovelty = async (title: string, overview: string, refere
 
 // Now accepts references to base topics on actual literature
 export const generateNovelTopics = async (domain: string, references: Reference[]): Promise<ResearchTopic[]> => {
-  const ai = getClient();
+  const ai = getGeminiClient('DISCOVERY');
   const modelId = "gemini-3-pro-preview"; 
 
   const richContext = references
@@ -166,7 +155,7 @@ const extractJson = (text: string): any[] => {
     if (jsonString.startsWith("```json")) {
         jsonString = jsonString.replace(/^```json/, "").replace(/```$/, "");
     } else if (jsonString.startsWith("```")) {
-        jsonString = jsonString.replace(/^``/, "").replace(/```$/, "");
+        jsonString = jsonString.replace(/^```/, "").replace(/```$/, "");
     }
     const parsed = JSON.parse(jsonString);
     return Array.isArray(parsed) ? parsed : [];
@@ -188,7 +177,8 @@ const runSpecializedAgent = async (
   topic: string, 
   allowPreprints: boolean
 ): Promise<Reference[]> => {
-  const ai = getClient();
+  // Use a specific key for each search agent to parallelize quota
+  const ai = getGeminiClient('DISCOVERY', agentName);
   const modelId = "gemini-2.5-flash"; 
 
   const prompt = `
@@ -290,20 +280,19 @@ export const searchLiterature = async (
   return uniqueRefs;
 };
 
-// Deprecated in favor of deepSearchService, but kept for compatibility if needed.
-// Logic moved to services/deepSearchService.ts
+// Deprecated in favor of deepSearchService
 export const expandBibliography = async (
   topic: string, 
   abstract: string,
   existingRefs: Reference[],
   onProgress?: (msg: string) => void
 ): Promise<Reference[]> => {
-    return []; // No-op, now handled by orchestrator calling deepSearchService
+    return []; 
 };
 
 
 export const proposeMethodologies = async (topic: string, references: Reference[]): Promise<MethodologyOption[]> => {
-  const ai = getClient();
+  const ai = getGeminiClient('DISCOVERY');
   const modelId = "gemini-3-pro-preview";
 
   const refContext = references.slice(0, 25).map(r => `- ${r.title} (${r.year}) [${r.source}]`).join("\n");
@@ -358,7 +347,7 @@ export const generateDraftAbstract = async (
   topic: string,
   methodology: MethodologyOption
 ): Promise<{ title: string; abstract: string; keywords: string[] }> => {
-  const ai = getClient();
+  const ai = getGeminiClient('DRAFTING');
   const modelId = "gemini-3-pro-preview";
 
   const prompt = `
@@ -401,12 +390,11 @@ export const generateDraftSection = async (
   methodology: MethodologyOption,
   onChunk: (chunk: string) => void
 ): Promise<string> => {
-  const ai = getClient();
+  // Use 'DRAFTING' client, potentially sharded by section name if we wanted
+  const ai = getGeminiClient('DRAFTING', sectionName);
   const modelId = "gemini-3-pro-preview";
 
-  // Use up to 80 references if available, pass the citation keys
   const refString = references.map((r, i) => {
-    // Ensure key exists
     const key = r.citationKey || `ref${i+1}`; 
     return `[${key}] ${r.title} (${r.year})`;
   }).join("\n");
@@ -462,7 +450,6 @@ export const generateBibliography = (references: Reference[]): string => {
   return bib;
 };
 
-// Deprecated single-shot function (Kept for fallback if needed, but App will switch to modular)
 export const generateLatexManuscript = async (
   topic: string,
   methodology: MethodologyOption,
@@ -470,7 +457,5 @@ export const generateLatexManuscript = async (
   references: Reference[],
   onChunk: (chunk: string) => void
 ): Promise<string> => {
-  // Pass-through to new system logic manually or keep distinct. 
-  // For now, I'll keep the existing logic as a backup for "Fast Draft" mode if implemented.
   return ""; 
 };

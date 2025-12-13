@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Check, Star, Zap, Infinity, BrainCircuit, Sliders } from 'lucide-react';
 import { LemurMascot } from './LemurMascot';
@@ -78,8 +79,8 @@ export const PricingSection: React.FC = () => {
           </p>
         </div>
 
-        {/* Mobile Mascot */}
-        <div className="lg:hidden mb-12 flex justify-center">
+        {/* Mobile Mascot (Visible only on small screens) */}
+        <div className="md:hidden mb-12 flex justify-center">
           <div className="relative w-32 h-32">
              <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-white border border-slate-200 p-2.5 rounded-xl shadow-lg w-40 text-center z-10 transition-all duration-300">
                 <p className="text-[10px] font-bold text-slate-700 italic leading-tight">
@@ -91,26 +92,27 @@ export const PricingSection: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative items-start">
+        {/* Pricing Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 relative items-start">
           {plans.map((plan) => (
             <div 
               key={plan.name} 
               className={`
-                relative flex flex-col p-6 rounded-2xl border transition-all duration-300 h-full
+                relative flex flex-col p-6 rounded-2xl border transition-all duration-300 h-full group
                 ${plan.highlight 
-                   ? 'bg-white border-indigo-200 shadow-xl scale-105 z-10 ring-4 ring-indigo-50' 
+                   ? 'bg-white border-indigo-200 shadow-xl scale-[1.02] z-10 ring-4 ring-indigo-50' 
                    : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-lg'
                 }
                 ${plan.isSub ? 'border-amber-200 bg-amber-50/30' : ''}
               `}
             >
               {plan.highlight && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide shadow-md whitespace-nowrap">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide shadow-md whitespace-nowrap z-20">
                   Most Popular
                 </div>
               )}
               {plan.isSub && !plan.highlight && (
-                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-1 shadow-md">
+                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-1 shadow-md z-20">
                    <Star className="w-3 h-3 fill-current" /> Subscription
                  </div>
               )}
@@ -136,7 +138,7 @@ export const PricingSection: React.FC = () => {
                 </span>
               </div>
 
-              {/* Extra Features for Pro */}
+              {/* Features List */}
               {plan.features.length > 0 && (
                   <div className="mb-6 space-y-3">
                       {plan.features.map((feature, i) => (
@@ -148,7 +150,7 @@ export const PricingSection: React.FC = () => {
                   </div>
               )}
 
-              <div className="mt-auto">
+              <div className="mt-auto relative z-20">
                 <button 
                   className={`
                     w-full py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm
@@ -161,22 +163,24 @@ export const PricingSection: React.FC = () => {
                   {plan.price === '$0' ? 'Start Free' : plan.isSub ? 'Subscribe Now' : 'Buy Pack'}
                 </button>
               </div>
+
+              {/* Anchored Mascot for Pro Plan (Desktop Only) */}
+              {plan.highlight && (
+                <div className="hidden md:block absolute -right-14 -bottom-10 w-44 h-44 z-30 pointer-events-none hover:scale-105 transition-transform duration-300">
+                   <div className="relative w-full h-full">
+                        <LemurMascot variant="pleading" className="w-full h-full drop-shadow-2xl" />
+                        {/* Desktop Speech Bubble */}
+                        <div className="absolute -top-6 -right-2 bg-white border border-slate-200 p-2.5 rounded-xl rounded-bl-none shadow-lg w-36 animate-bounce-slow">
+                            <p className="text-[10px] font-bold text-slate-700 italic leading-tight text-center">
+                                "{currentThought}"
+                            </p>
+                            <div className="absolute -bottom-1.5 left-2 w-3 h-3 bg-white border-b border-r border-slate-200 transform rotate-45"></div>
+                        </div>
+                   </div>
+                </div>
+              )}
             </div>
           ))}
-
-          {/* Floating Pleading Mascot (Desktop) */}
-          <div className="hidden lg:block absolute -right-24 bottom-10 z-20 hover:scale-105 transition-transform duration-300">
-              <div className="relative w-48 h-48">
-                 <div className="absolute top-2 -left-6 bg-white border border-slate-200 p-2 rounded-xl rounded-br-none shadow-xl w-32 animate-bounce-slow transition-all duration-500 z-30">
-                    <p className="text-[9px] font-bold text-slate-700 italic leading-tight">
-                       "{currentThought}"
-                    </p>
-                    <div className="absolute -bottom-1.5 right-2 w-2.5 h-2.5 bg-white border-b border-r border-slate-200 transform rotate-45"></div>
-                 </div>
-                 
-                 <LemurMascot variant="pleading" className="w-full h-full drop-shadow-2xl" />
-              </div>
-          </div>
         </div>
       </div>
     </section>

@@ -1,17 +1,8 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { Type } from "@google/genai";
 import { ReviewReport, ReviewAgentResult, ReferenceAudit, Reference } from "../types";
 import * as CitationService from './citationService';
-
-
-
-const getClient = () => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error("API_KEY environment variable is not set");
-  }
-  return new GoogleGenAI({ apiKey });
-};
+import { getGeminiClient } from "./geminiClient";
 
 // Helper to convert File to Base64
 export const fileToBase64 = (file: File): Promise<string> => {
@@ -30,8 +21,9 @@ export const fileToBase64 = (file: File): Promise<string> => {
 
 // 1. Extract References from PDF using Gemini Vision
 const extractReferencesFromPdf = async (base64Pdf: string, mimeType: string): Promise<Reference[]> => {
-    const ai = getClient();
-    const modelId = "gemini-2.5-flash"; // Flash is fast enough for extraction
+    // Unique key for scanner to avoid blocking reviewers
+    const ai = getGeminiClient('REVIEW', 'Citation Scanner');
+    const modelId = "gemini-2.5-flash"; 
 
     const prompt = `
       TASK: Extract the bibliography/references section from this academic PDF.
@@ -98,7 +90,7 @@ const runReviewAgent = async (
   mimeType: string,
   auditContext?: string
 ): Promise<ReviewAgentResult> => {
-    const ai = getClient();
+    const ai = getGeminiClient('REVIEW', agentName);
     const modelId = "gemini-3-pro-preview"; 
 
     // Inject audit context if available (specifically for Citation Police)
@@ -235,7 +227,7 @@ export const performPeerReview = async (
             name: "The Citation Police",
             role: "Bibliography Integrity Officer",
             focus: "Check for hallucinated references, self-citation padding, and relevance of cited works. Use the provided audit stats.",
-            needsAudit: true // This agent gets the audit context
+            needsAudit: true 
         },
         {
             name: "Prof. Clarity",
@@ -274,7 +266,6 @@ export const performPeerReview = async (
     const normalizedScore = Math.round(avgScore * 10); // 0-100
 
     // Heuristic for final verdict
-    // If Citation Health is bad (<60%), immediate reject
     let finalVerdict: ReviewReport['finalVerdict'] = 'Accept';
     
     if (healthScore < 60) {

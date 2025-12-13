@@ -1,8 +1,9 @@
 
 import React from 'react';
-import { Twitter, Github, Linkedin, Mail, Heart, MapPin, Phone } from 'lucide-react';
+import { Twitter, Github, Linkedin, Mail, Heart, MapPin, Phone, Key } from 'lucide-react';
 import { LemurMascot } from './LemurMascot';
 import { AppStep } from '../types';
+import { getKeyCount } from '../services/geminiClient';
 
 interface FooterProps {
   onNavigate?: (step: AppStep) => void;
@@ -17,6 +18,8 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
+  const keyCount = getKeyCount();
 
   return (
     <footer className="bg-slate-950 text-slate-300 border-t border-slate-900">
@@ -120,10 +123,18 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                 <a href="#" className="text-xs text-slate-600 hover:text-slate-400">Cookie Settings</a>
              </div>
           </div>
-          <div className="flex items-center gap-1 text-sm text-slate-500">
-            <span>Made with</span>
-            <Heart className="h-3 w-3 text-red-500 fill-current" />
-            <span>using Google Gemini</span>
+          <div className="flex items-center gap-6">
+            {keyCount > 1 && (
+               <div className="flex items-center gap-1.5 text-xs text-emerald-500 bg-emerald-950/30 px-3 py-1 rounded-full border border-emerald-900/50">
+                  <Key className="w-3 h-3" />
+                  <span className="font-bold">{keyCount} API Keys Active</span>
+               </div>
+            )}
+            <div className="flex items-center gap-1 text-sm text-slate-500">
+                <span>Made with</span>
+                <Heart className="h-3 w-3 text-red-500 fill-current" />
+                <span>using Google Gemini</span>
+            </div>
           </div>
         </div>
       </div>

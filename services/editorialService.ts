@@ -1,20 +1,12 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { Type } from "@google/genai";
 import { EditorialLog } from "../types";
-
-
-const getClient = () => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error("API_KEY environment variable is not set");
-  }
-  return new GoogleGenAI({ apiKey });
-};
+import { getGeminiClient } from "./geminiClient";
 
 // --- AGENT 1: THE TYPESETTER (Syntax Fixer) ---
 // Scans for table errors, missing brackets, and compilation issues.
 export const runTypesetterAgent = async (latexContent: string): Promise<{ correctedLatex: string; changes: string[] }> => {
-  const ai = getClient();
+  const ai = getGeminiClient('EDITORIAL', 'Typesetter');
   const modelId = "gemini-2.5-flash"; // Fast and good at code/structure
 
   const prompt = `
@@ -68,7 +60,7 @@ export const runTypesetterAgent = async (latexContent: string): Promise<{ correc
 // --- AGENT 2: THE SCIENTIFIC REVIEWER (Rigor Check) ---
 // Rewrites unproven claims and strengthens arguments.
 export const runScientificReviewerAgent = async (latexContent: string): Promise<{ correctedLatex: string; changes: string[] }> => {
-  const ai = getClient();
+  const ai = getGeminiClient('EDITORIAL', 'Reviewer');
   const modelId = "gemini-3-pro-preview"; // High reasoning capability
 
   const prompt = `
@@ -121,7 +113,7 @@ export const runScientificReviewerAgent = async (latexContent: string): Promise<
 // --- AGENT 3: THE AUDITOR (Citation Validator) ---
 // Checks if cited references exist in bib and vice versa.
 export const runAuditorAgent = async (latexContent: string): Promise<{ issues: string[]; healthScore: number }> => {
-  const ai = getClient();
+  const ai = getGeminiClient('EDITORIAL', 'Auditor');
   const modelId = "gemini-2.5-flash"; 
 
   const prompt = `
@@ -178,7 +170,7 @@ export const runEditorInChief = async (
     reasoning: string;
     instructions: string 
 }> => {
-    const ai = getClient();
+    const ai = getGeminiClient('EDITORIAL', 'Chief');
     const modelId = "gemini-3-pro-preview";
 
     const prompt = `

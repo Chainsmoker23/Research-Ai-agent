@@ -1,18 +1,7 @@
 
-
-import { GoogleGenAI } from "@google/genai";
 import { Reference } from "../types";
 import * as CitationService from './citationService';
-
-
-
-const getClient = () => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error("API_KEY environment variable is not set");
-  }
-  return new GoogleGenAI({ apiKey });
-};
+import { getGeminiClient } from "./geminiClient";
 
 export interface AgentProgress {
     name: string;
@@ -82,7 +71,8 @@ const runSingleAgent = async (
     abstract: string,
     onUpdate: (progress: AgentProgress) => void
 ): Promise<Reference[]> => {
-    const ai = getClient();
+    // Key sharding: Request a client specifically for this agent name
+    const ai = getGeminiClient('DEEP_SEARCH', agentConfig.name);
     const modelId = "gemini-2.5-flash"; 
 
     // 1. Analysis Phase
@@ -137,7 +127,6 @@ const runSingleAgent = async (
         }
 
         // Enforce minimum execution time (simulating "reading")
-        // If the API returns in 500ms, we wait until at least 3000ms have passed.
         const elapsedTime = Date.now() - startTime;
         const minTime = 3000 + Math.random() * 2000;
         if (elapsedTime < minTime) {
