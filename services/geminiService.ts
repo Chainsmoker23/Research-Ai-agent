@@ -5,9 +5,11 @@ import * as CitationService from './citationService';
 
 // Helper to get client
 const getClient = () => {
-  const apiKey = process.env.API_KEY;
+  // In Vite, environment variables are accessed via import.meta.env
+  // Variables must be prefixed with VITE_ to be available in the browser
+  const apiKey = import.meta.env.VITE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error("API_KEY environment variable is not set");
+    throw new Error("API_KEY environment variable is not set. Please check your .env file and ensure it has VITE_API_KEY or VITE_GEMINI_API_KEY defined.");
   }
   return new GoogleGenAI({ apiKey });
 };
@@ -164,7 +166,7 @@ const extractJson = (text: string): any[] => {
     if (jsonString.startsWith("```json")) {
         jsonString = jsonString.replace(/^```json/, "").replace(/```$/, "");
     } else if (jsonString.startsWith("```")) {
-        jsonString = jsonString.replace(/^```/, "").replace(/```$/, "");
+        jsonString = jsonString.replace(/^``/, "").replace(/```$/, "");
     }
     const parsed = JSON.parse(jsonString);
     return Array.isArray(parsed) ? parsed : [];

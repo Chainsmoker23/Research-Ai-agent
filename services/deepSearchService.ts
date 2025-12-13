@@ -4,6 +4,8 @@ import { GoogleGenAI } from "@google/genai";
 import { Reference } from "../types";
 import * as CitationService from './citationService';
 
+
+
 const getClient = () => {
   const apiKey = process.env.API_KEY;
   if (!apiKey) {

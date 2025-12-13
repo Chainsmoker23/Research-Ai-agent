@@ -2,6 +2,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { EditorialLog } from "../types";
 
+
 const getClient = () => {
   const apiKey = process.env.API_KEY;
   if (!apiKey) {
