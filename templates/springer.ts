@@ -1,79 +1,42 @@
 
-export const SPRINGER_TEMPLATE = [
-  "%Style/Chemistry Reference Style",
-  "\\documentclass[pdflatex,sn-mathphys-num]{sn-jnl}% Math and Physical Sciences Numbered Reference Style",
-  "",
-  "\\usepackage{graphicx}%",
-  "\\usepackage{multirow}%",
-  "\\usepackage{amsmath,amssymb,amsfonts}%",
-  "\\usepackage{amsthm}%",
-  "\\usepackage{mathrsfs}%",
-  "\\usepackage[title]{appendix}%",
-  "\\usepackage{xcolor}%",
-  "\\usepackage{textcomp}%",
-  "\\usepackage{manyfoot}%",
-  "\\usepackage{booktabs}%",
-  "\\usepackage{algorithm}%",
-  "\\usepackage{algorithmicx}%",
-  "\\usepackage{algpseudocode}%",
-  "\\usepackage{listings}%",
-  "",
-  "\\theoremstyle{thmstyleone}%",
-  "\\newtheorem{theorem}{Theorem}%",
-  "\\newtheorem{proposition}[theorem]{Proposition}% ",
-  "",
-  "\\theoremstyle{thmstyletwo}%",
-  "\\newtheorem{example}{Example}%",
-  "\\newtheorem{remark}{Remark}%",
-  "",
-  "\\theoremstyle{thmstylethree}%",
-  "\\newtheorem{definition}{Definition}%",
-  "",
-  "\\raggedbottom",
-  "",
-  "\\begin{document}",
-  "",
-  "\\title[{{TITLE_SHORT}}]{{{TITLE}}}",
-  "",
-  "%%=============================================================%%",
-  "%% Author Information",
-  "%%=============================================================%%",
-  "",
-  "\\author*[1]{\\fnm{{{AUTHOR_FNM}}} \\sur{{{AUTHOR_SUR}}}}\\email{{{AUTHOR_EMAIL}}}",
-  "",
-  "\\affil*[1]{\\orgdiv{{{AUTHOR_DEPT}}}, \\orgname{{{AUTHOR_AFFIL}}}}",
-  "",
-  "%%",
-  "",
-  "\\abstract{{{ABSTRACT}}}",
-  "",
-  "\\keywords{{{KEYWORDS}}}",
-  "",
-  "\\maketitle",
-  "",
-  "{{BODY}}",
-  "",
-  "\\backmatter",
-  "",
-  "\\bmhead{Supplementary information}",
-  "Please refer to Journal-level guidance for any specific requirements.",
-  "",
-  "\\bmhead{Acknowledgements}",
-  "{{FUNDING}}",
-  "",
-  "\\section*{Declarations}",
-  "\\begin{itemize}",
-  "\\item Funding: {{FUNDING}}",
-  "\\item Conflict of interest: The authors declare no competing interests.",
-  "\\item Ethics approval: Not applicable.",
-  "\\item Consent for publication: All authors consent to the publication of this manuscript.",
-  "\\end{itemize}",
-  "",
-  "%%===========================================================================================%%",
-  "%% Bibliography",
-  "%%===========================================================================================%%",
-  "",
-  "{{BIBLIOGRAPHY}}",
-  "",
-  "\\end{document}"
-].join("\n");
+export const SPRINGER_TEMPLATE = `
+\\documentclass[11pt,a4paper]{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage[T1]{fontenc}
+\\usepackage{geometry}
+\\geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm}
+\\usepackage{authblk}
+\\usepackage{graphicx}
+\\usepackage{amsmath,amssymb}
+\\usepackage{cite}
+\\usepackage{hyperref}
+\\usepackage{mathptmx} 
+\\usepackage{url}
+
+\\title{\\textbf{{{TITLE}}}}
+\\author[1]{{{AUTHOR_FNM}} {{AUTHOR_SUR}}}
+\\affil[1]{{{AUTHOR_DEPT}}, {{AUTHOR_AFFIL}} \\\\ \\texttt{{{AUTHOR_EMAIL}}}}
+\\date{}
+
+\\begin{document}
+
+\\maketitle
+
+\\begin{abstract}
+\\noindent
+{{ABSTRACT}}
+\\end{abstract}
+
+\\vspace{1em}
+\\noindent\\textbf{Keywords:} {{KEYWORDS}}
+\\vspace{1em}
+
+{{BODY}}
+
+\\section*{Declarations}
+\\textbf{Funding:} {{FUNDING}}
+
+{{BIBLIOGRAPHY}}
+
+\\end{document}
+`;
