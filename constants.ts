@@ -1,4 +1,7 @@
+
 import { LatexTemplate } from './types';
+import { SPRINGER_TEMPLATE } from './templates/springer';
+import { IEEE_TEMPLATE } from './templates/ieee';
 
 export const TEMPLATES: LatexTemplate[] = [
   {
@@ -10,17 +13,15 @@ export const TEMPLATES: LatexTemplate[] = [
   {
     id: 'ieee',
     name: 'IEEE Conference',
-    description: 'IEEE Computer Society proceedings. Classic two-column layout.',
-    classFile: '\\documentclass[conference]{IEEEtran}'
+    description: 'Official IEEE Sponsored Conferences & Symposia (ieeeconf).',
+    classFile: 'ieeeconf',
+    rawTemplate: IEEE_TEMPLATE
   },
   {
     id: 'springer',
-    name: 'Springer LNCS',
-    description: 'Lecture Notes in Computer Science. Single column, focus on readability.',
-    classFile: '\\documentclass{llncs}'
+    name: 'Springer Nature',
+    description: 'Standard Springer Nature Journal Template (sn-jnl).',
+    classFile: 'sn-jnl',
+    rawTemplate: SPRINGER_TEMPLATE
   }
 ];
-
-// Mock data to prevent app crash if API key is missing during testing, 
-// though the prompt requires strictly functional code.
-// The service layer checks for process.env.API_KEY.

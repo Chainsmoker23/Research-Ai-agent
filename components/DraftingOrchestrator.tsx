@@ -1,12 +1,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AuthorMetadata, ResearchTopic, Reference, MethodologyOption, LatexTemplate, EditorialLog } from '../types';
+import { AuthorMetadata, ResearchTopic, Reference, MethodologyOption, LatexTemplate, EditorialLog, ReviewReport } from '../types';
 import * as GeminiService from '../services/geminiService';
 import * as DeepSearchService from '../services/deepSearchService';
 import * as EditorialService from '../services/editorialService';
+import * as ReviewService from '../services/reviewService';
 import { AuthorMetadataForm } from './AuthorMetadataForm';
 import { LatexPreview } from './LatexPreview';
-import { CheckCircle2, Circle, Loader2, Play, RefreshCw, AlertTriangle, BookOpen, Database, ScanSearch, History, TrendingUp, Microscope, SearchX, Gavel, FileCode, CheckCheck, UserCheck } from 'lucide-react';
+import { ReviewReportView } from './ReviewReportView';
+import { TEMPLATES } from '../constants';
+import { CheckCircle2, Circle, Loader2, Play, RefreshCw, AlertTriangle, BookOpen, Database, ScanSearch, History, TrendingUp, Microscope, SearchX, Gavel, FileCode, CheckCheck, UserCheck, ShieldAlert, X } from 'lucide-react';
 
 interface DraftingOrchestratorProps {
   topic: ResearchTopic;
@@ -24,9 +27,9 @@ type DraftSection = {
 };
 
 export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
-  topic, methodology, template, references: initialReferences, onComplete
+  topic, methodology, template: initialTemplate, references: initialReferences, onComplete
 }) => {
-  const [step, setStep] = useState<'metadata' | 'abstract' | 'gathering_citations' | 'sections' | 'editorial_polish' | 'final'>('metadata');
+  const [step, setStep] = useState<'metadata' | 'abstract' | 'gathering_citations' | 'sections' | 'review_choice' | 'editorial_polish' | 'final'>('metadata');
   const [authorData, setAuthorData] = useState<AuthorMetadata | null>(null);
   
   // Local references state
@@ -47,6 +50,11 @@ export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
   const [editorialLogs, setEditorialLogs] = useState<EditorialLog[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
+  // Peer Review State
+  const [isRunningReview, setIsRunningReview] = useState(false);
+  const [reviewReport, setReviewReport] = useState<ReviewReport | null>(null);
+  const [reviewAgent, setReviewAgent] = useState<string | null>(null);
+
   // Sections State
   const [sections, setSections] = useState<DraftSection[]>([
     { id: 'intro', name: 'Introduction', content: '', status: 'pending' },
@@ -59,8 +67,9 @@ export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
   const [currentSectionIdx, setCurrentSectionIdx] = useState(0);
   const [streamingContent, setStreamingContent] = useState("");
   
-  // Final Assembly
+  // Final Assembly & Template Switching
   const [fullLatex, setFullLatex] = useState("");
+  const [activeTemplate, setActiveTemplate] = useState<LatexTemplate>(initialTemplate);
 
   // Helper to assign keys
   const assignCitationKeys = (refs: Reference[]) => {
@@ -150,8 +159,8 @@ export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
 
   const generateNextSection = async (index: number, currentRefs: Reference[] = references) => {
     if (index >= sections.length) {
-      // Instead of final, go to editorial polish
-      startEditorialBoard();
+      // Instead of automatically starting editorial, offer choice
+      setStep('review_choice');
       return;
     }
 
@@ -188,11 +197,45 @@ export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
     }
   };
 
-  const compileRawLatex = () => {
+  // Compile Latex with Dynamic Template Support
+  const compileRawLatex = (targetTemplate: LatexTemplate = activeTemplate) => {
       if (!authorData) return "";
       
+      const bib = GeminiService.generateBibliography(references);
+      const body = sections.map(s => `
+\\section{${s.name}}
+${s.content}
+    `).join("\n");
+
+      // Custom Raw Template Engine (e.g., Springer)
+      if (targetTemplate.rawTemplate) {
+          let latex = targetTemplate.rawTemplate;
+          
+          // Name Splitting for Springer-like formats
+          const nameParts = authorData.fullName.split(' ');
+          const surName = nameParts.length > 1 ? nameParts.pop() || "" : "";
+          const firstName = nameParts.join(" ") || authorData.fullName;
+
+          // Use split/join for global replacement
+          latex = latex.split('{{TITLE}}').join(draftTitle);
+          latex = latex.split('{{TITLE_SHORT}}').join(draftTitle.substring(0, 50) + "...");
+          latex = latex.split('{{AUTHOR_FNM}}').join(firstName);
+          latex = latex.split('{{AUTHOR_SUR}}').join(surName);
+          latex = latex.split('{{AUTHOR_EMAIL}}').join(authorData.email);
+          latex = latex.split('{{AUTHOR_DEPT}}').join(authorData.department);
+          latex = latex.split('{{AUTHOR_AFFIL}}').join(authorData.affiliation);
+          latex = latex.split('{{ABSTRACT}}').join(draftAbstract);
+          latex = latex.split('{{KEYWORDS}}').join(draftKeywords.join(", "));
+          latex = latex.split('{{BODY}}').join(body);
+          latex = latex.split('{{BIBLIOGRAPHY}}').join(bib);
+          latex = latex.split('{{FUNDING}}').join(authorData.funding || "No funding was received for this work.");
+          
+          return latex;
+      }
+
+      // Default/Legacy Template Engine (IEEE/ACM constructed manually)
       const preamble = `
-${template.classFile}
+${targetTemplate.classFile}
 \\usepackage{amsmath,amssymb,amsfonts}
 \\usepackage{graphicx}
 \\usepackage{textcomp}
@@ -221,14 +264,12 @@ ${draftKeywords.join(", ")}
 \\end{IEEEkeywords}
     `;
 
-    const body = sections.map(s => `
-\\section{${s.name}}
-${s.content}
-    `).join("\n");
-
-    const bib = GeminiService.generateBibliography(references);
-
     return preamble + body + `\n${bib}\n\\end{document}`;
+  };
+
+  const handleSkipReview = () => {
+      setFullLatex(compileRawLatex());
+      setStep('final');
   };
 
   const startEditorialBoard = async () => {
@@ -249,6 +290,36 @@ ${s.content}
       }
   };
 
+  // Handle Template Switch in Final View
+  const handleTemplateChange = (templateId: string) => {
+      const newTemplate = TEMPLATES.find(t => t.id === templateId);
+      if (newTemplate) {
+          setActiveTemplate(newTemplate);
+          setFullLatex(compileRawLatex(newTemplate));
+      }
+  };
+
+  const handleRunPeerReview = async (pdfBlob: Blob) => {
+      setIsRunningReview(true);
+      setReviewReport(null);
+      setReviewAgent(null);
+      
+      try {
+          const file = new File([pdfBlob], "manuscript.pdf", { type: "application/pdf" });
+          const report = await ReviewService.performPeerReview(
+              file,
+              (agentName) => setReviewAgent(agentName),
+              () => setReviewAgent(null)
+          );
+          setReviewReport(report);
+      } catch (e) {
+          console.error("Review failed", e);
+          alert("Peer review failed.");
+      } finally {
+          setIsRunningReview(false);
+      }
+  };
+
   const getAgentIcon = (role: string) => {
       switch(role) {
           case 'Historian': return <History className="w-5 h-5" />;
@@ -263,6 +334,8 @@ ${s.content}
 
   if (step === 'metadata') return <AuthorMetadataForm onSubmit={handleMetadataSubmit} isLoading={false} />;
 
+  // ... (Abstract, Gathering, Sections, Review Choice, Editorial Polish renderers remain same)
+  
   if (step === 'abstract') {
     return (
       <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
@@ -342,10 +415,45 @@ ${s.content}
       );
   }
 
+  // REVIEW CHOICE UI
+  if (step === 'review_choice') {
+    return (
+        <div className="max-w-3xl mx-auto py-12 px-4 animate-fade-in text-center space-y-8">
+            <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-xl">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <CheckCheck className="w-10 h-10 text-green-600" />
+                </div>
+                <h2 className="text-3xl font-bold text-slate-900 mb-4">First Draft Complete</h2>
+                <p className="text-slate-600 text-lg mb-8 max-w-xl mx-auto">
+                    All sections have been written. You can now proceed to the <strong>Editorial Board</strong> for a rigor check, or export the draft as is.
+                </p>
+                
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button 
+                        onClick={handleSkipReview}
+                        className="px-8 py-4 border-2 border-slate-200 rounded-xl text-slate-700 font-bold hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2"
+                    >
+                        <FileCode className="w-5 h-5" /> View/Export Draft
+                    </button>
+                    <button 
+                        onClick={startEditorialBoard}
+                        className="px-8 py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg hover:shadow-indigo-200 hover:-translate-y-1 transition-all flex items-center justify-center gap-2"
+                    >
+                        Start Editorial Review <Gavel className="w-5 h-5" />
+                    </button>
+                </div>
+                
+                <div className="mt-6 text-xs text-slate-400 bg-slate-50 inline-block px-3 py-1 rounded-full">
+                    Review adds approximately 2-3 minutes to the process.
+                </div>
+            </div>
+        </div>
+    );
+  }
+
   // EDITORIAL BOARD UI
   if (step === 'editorial_polish') {
       const activeAgent = editorialLogs[editorialLogs.length - 1]?.agentName || "Editor-in-Chief";
-      
       const agents = [
           { name: "Typesetter", role: "LaTeX Fixer", icon: <FileCode className="w-6 h-6"/>, color: "bg-blue-100 text-blue-600" },
           { name: "Reviewer", role: "Scientific Rigor", icon: <UserCheck className="w-6 h-6"/>, color: "bg-purple-100 text-purple-600" },
@@ -458,7 +566,7 @@ ${s.content}
                         <RefreshCw className="w-4 h-4" /> Regenerate
                      </button>
                      <button onClick={() => generateNextSection(currentSectionIdx + 1, references)} className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 flex items-center gap-2">
-                        {currentSectionIdx === sections.length - 1 ? "Start Editorial Review" : "Next Section"} <Play className="w-4 h-4" />
+                        {currentSectionIdx === sections.length - 1 ? "Finish Drafting" : "Next Section"} <Play className="w-4 h-4" />
                      </button>
                   </>
                ) : (
@@ -472,5 +580,56 @@ ${s.content}
     );
   }
 
-  return <LatexPreview content={fullLatex} />;
+  // --- FINAL VIEW with Review Integration ---
+  
+  return (
+    <>
+      <LatexPreview 
+        content={fullLatex} 
+        templates={TEMPLATES}
+        currentTemplateId={activeTemplate.id}
+        onTemplateChange={handleTemplateChange}
+        onAnalyze={handleRunPeerReview}
+      />
+
+      {/* Peer Review Overlay */}
+      {(isRunningReview || reviewReport) && (
+          <div className="fixed inset-0 z-[60] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col relative shadow-2xl">
+                  {/* Close Button */}
+                  <button 
+                    onClick={() => { setIsRunningReview(false); setReviewReport(null); }}
+                    className="absolute top-4 right-4 z-10 p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
+                  >
+                      <X className="w-5 h-5 text-slate-500" />
+                  </button>
+
+                  <div className="overflow-y-auto p-4 flex-grow">
+                      {isRunningReview ? (
+                          <div className="flex flex-col items-center justify-center h-96 space-y-6">
+                              <div className="relative">
+                                  <div className="w-24 h-24 rounded-full border-4 border-indigo-100 border-t-indigo-600 animate-spin"></div>
+                                  <div className="absolute inset-0 flex items-center justify-center">
+                                      <ShieldAlert className="w-10 h-10 text-indigo-600" />
+                                  </div>
+                              </div>
+                              <div className="text-center">
+                                  <h3 className="text-2xl font-bold text-slate-900">Peer Review in Progress</h3>
+                                  <p className="text-slate-500 mt-2">
+                                      {reviewAgent ? `${reviewAgent} is analyzing...` : "Review Board is assembling..."}
+                                  </p>
+                              </div>
+                          </div>
+                      ) : reviewReport ? (
+                          <ReviewReportView 
+                              report={reviewReport} 
+                              onClose={() => { setIsRunningReview(false); setReviewReport(null); }} 
+                          />
+                      ) : null}
+                  </div>
+              </div>
+          </div>
+      )}
+    </>
+  );
 };

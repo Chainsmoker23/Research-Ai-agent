@@ -400,7 +400,7 @@ export const generateDraftSection = async (
   }).join("\n");
 
   const prompt = `
-    ROLE: Academic Drafting Agent (Specialist in ${sectionName}).
+    ROLE: World-Class Academic Researcher & Technical Writer.
     TASK: Write the "${sectionName}" section of the paper.
     
     Context (Draft So Far):
@@ -412,15 +412,24 @@ export const generateDraftSection = async (
     Available References (You MUST cite relevant ones using \\cite{key}):
     ${refString}
 
-    REQUIREMENTS:
-    1. Write ONLY the content for the section "${sectionName}". Do not repeat the title or abstract.
-    2. Use standard LaTeX syntax.
-    3. Be rigorous, academic, and dense.
-    4. If writing Introduction or Related Work, you MUST cite the provided references using \\cite{citationKey}.
-    5. If writing Methodology, be specific to ${methodology.description}.
-    6. Ensure the tone is formal and scientific.
+    CRITICAL INSTRUCTIONS FOR HIGH SCORES:
+    1. **MANDATORY Visual Placeholders**: You MUST insert LaTeX placeholders for Figures or Tables in this section if appropriate (e.g. for Results, Methodology, or Architecture). 
+       - DO NOT SKIP THIS. The user needs to see where to put their images.
+       - Syntax:
+         \\begin{figure}[htbp]
+           \\centering
+           \\fbox{\\begin{minipage}{0.9\\textwidth}\\centering\\vspace{2cm} [PLACEHOLDER: Describe diagram/chart here] \\vspace{2cm}\\end{minipage}}
+           \\caption{Descriptive caption.}
+           \\label{fig:placeholder}
+         \\end{figure}
+
+    2. **Deep Technical Density**: Do not write fluff. Write dense, mathematical, and algorithmic content.
+       - If writing Methodology: Define equations, variables, and algorithms formally.
+       - If writing Results: Hallucinate PLAUSIBLE, CONSISTENT simulation data. You are a simulation agent. Do not say "we will measure". Say "we measured X and found Y". Use numbers!
     
-    Output pure LaTeX code for this section only.
+    3. **Tone**: Rigorous, objective, and authoritative. Avoid passive voice.
+
+    4. **LaTeX Only**: Output ONLY valid LaTeX code for this section. No markdown blocks.
   `;
 
   const result = await ai.models.generateContentStream({

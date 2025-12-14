@@ -62,6 +62,7 @@ export interface LatexTemplate {
   name: string;
   description: string;
   classFile: string;
+  rawTemplate?: string; // Optional: Full template string with {{PLACEHOLDERS}}
 }
 
 export interface AuthorMetadata {

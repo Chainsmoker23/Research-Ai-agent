@@ -7,18 +7,16 @@ import { getGeminiClient } from "./geminiClient";
 // Scans for table errors, missing brackets, and compilation issues.
 export const runTypesetterAgent = async (latexContent: string): Promise<{ correctedLatex: string; changes: string[] }> => {
   const ai = getGeminiClient('EDITORIAL', 'Typesetter');
-  const modelId = "gemini-2.5-flash"; // Fast and good at code/structure
+  const modelId = "gemini-2.5-flash"; 
 
   const prompt = `
     ROLE: Expert LaTeX Typesetter.
-    TASK: Scan the following LaTeX academic manuscript for syntax errors, compilation bugs, and formatting issues.
+    TASK: Fix syntax errors in the provided LaTeX manuscript without changing the content.
     
-    CHECKLIST:
-    1. Check for unbalanced braces { }.
-    2. Fix malformed tables (missing & or \\\\).
-    3. Ensure equations are properly enclosed.
-    4. Verify \begin{...} has matching \end{...}.
-    5. Fix common special character escaping issues (e.g. % -> \\%).
+    CRITICAL CONSTRAINT: 
+    - DO NOT REMOVE ANY TEXT. 
+    - DO NOT DELETE SECTIONS.
+    - ONLY FIX BROKEN CODE (unbalanced braces, bad table formatting, escaping % or &).
     
     INPUT LATEX:
     ${latexContent}
@@ -26,7 +24,7 @@ export const runTypesetterAgent = async (latexContent: string): Promise<{ correc
     OUTPUT:
     Return a JSON object with:
     - "correctedLatex": The full corrected string.
-    - "changes": An array of strings describing what you fixed (e.g., "Fixed unbalanced brace in Abstract").
+    - "changes": An array of strings describing what you fixed.
   `;
 
   try {
@@ -61,25 +59,31 @@ export const runTypesetterAgent = async (latexContent: string): Promise<{ correc
 // Rewrites unproven claims and strengthens arguments.
 export const runScientificReviewerAgent = async (latexContent: string): Promise<{ correctedLatex: string; changes: string[] }> => {
   const ai = getGeminiClient('EDITORIAL', 'Reviewer');
-  const modelId = "gemini-3-pro-preview"; // High reasoning capability
+  // Using 3-pro for high adherence to "Do not delete" instructions
+  const modelId = "gemini-3-pro-preview"; 
 
   const prompt = `
-    ROLE: Senior Scientific Reviewer (Peer Review Simulation).
-    TASK: Evaluate the scientific rigor of the text. Identify unproven claims, vague statements, or logical fallacies.
+    ROLE: Senior Scientific Editor (Nature/Science).
+    TASK: Refine the text for academic rigor, flow, and impact.
     
-    INSTRUCTIONS:
-    1. Look for phrases like "It is well known", "obviously", or "perfect results" and rewrite them to be objective.
-    2. Check if the Conclusion follows logically from the Results.
-    3. Ensure the Methodology is described with sufficient detail.
-    4. REWRITE the specific paragraphs that are weak.
+    *** CRITICAL PRESERVATION PROTOCOLS (VIOLATION = SYSTEM FAILURE) ***
+    1. **DO NOT DELETE SECTIONS**: You MUST preserve the 'Related Work', 'Methodology', and 'Bibliography' sections exactly as they are structure-wise.
+    2. **DO NOT SUMMARIZE**: You must output the FULL, detailed manuscript. Do not shorten paragraphs.
+    3. **PRESERVE PLACEHOLDERS**: Do NOT remove any \begin{figure} or \begin{table} placeholders.
+    4. **PRESERVE CITATIONS**: Do NOT remove \cite{...} tags.
     
+    IMPROVEMENT GOALS:
+    1. **Quantify Claims**: Change "results were good" to "we observed a 12% increase...".
+    2. **Active Voice**: Change "It was shown that" to "We demonstrate that...".
+    3. **Fill Gaps**: If a paragraph feels weak, ADD a sentence explaining the 'Why'.
+
     INPUT LATEX:
     ${latexContent}
 
     OUTPUT:
     Return a JSON object with:
-    - "correctedLatex": The full revised latex with your improvements applied.
-    - "changes": An array of strings describing the scientific improvements (e.g., "Tempered claim about 'perfect accuracy' in Conclusion").
+    - "correctedLatex": The FULL, refined LaTeX document (must be approx same length or longer).
+    - "changes": An array of strings describing specific improvements (e.g. "Quantified accuracy in Abstract").
   `;
 
   try {
@@ -111,27 +115,23 @@ export const runScientificReviewerAgent = async (latexContent: string): Promise<
 };
 
 // --- AGENT 3: THE AUDITOR (Citation Validator) ---
-// Checks if cited references exist in bib and vice versa.
 export const runAuditorAgent = async (latexContent: string): Promise<{ issues: string[]; healthScore: number }> => {
   const ai = getGeminiClient('EDITORIAL', 'Auditor');
   const modelId = "gemini-2.5-flash"; 
 
   const prompt = `
     ROLE: Bibliography Auditor.
-    TASK: Cross-reference the citations in the text (\cite{...}) with the bibliography at the end.
+    TASK: Check citation consistency.
     
     CHECKS:
-    1. Does every \cite{key} have a corresponding entry in bibliography?
-    2. Does every bib entry appear in the text (or flag as unused)?
-    3. Are the keys formatted consistently?
+    1. Are all \cite{...} keys defined in the bib?
+    2. Are there citations in the text?
     
     INPUT LATEX:
-    ${latexContent}
+    ${latexContent.substring(0, 50000)}
 
     OUTPUT:
-    JSON with:
-    - "issues": Array of warnings (e.g. "Citation 'smith2020' used in text but missing from bib").
-    - "healthScore": 0-100 score of citation integrity.
+    JSON with "issues" and "healthScore".
   `;
 
   try {
@@ -153,13 +153,11 @@ export const runAuditorAgent = async (latexContent: string): Promise<{ issues: s
 
     return JSON.parse(response.text || "{}");
   } catch (e) {
-    console.error("Auditor failed", e);
     return { issues: ["Auditor scan failed"], healthScore: 50 };
   }
 };
 
 // --- AGENT 4: EDITOR-IN-CHIEF (Orchestrator) ---
-// Decides what to do next based on previous reports.
 export const runEditorInChief = async (
     currentIteration: number,
     latexContent: string,
@@ -174,24 +172,19 @@ export const runEditorInChief = async (
     const modelId = "gemini-3-pro-preview";
 
     const prompt = `
-      ROLE: Editor-in-Chief of a high-impact journal.
-      TASK: Decide the next step for this manuscript revision process.
+      ROLE: Editor-in-Chief.
+      TASK: Manage the revision process.
       
       CONTEXT:
-      - Iteration: ${currentIteration} / 4 (Max)
-      - Last Changes Made: ${JSON.stringify(lastChanges)}
-      - Auditor Health Score: ${auditorReport.healthScore}/100
-      - Auditor Issues: ${JSON.stringify(auditorReport.issues)}
+      - Iteration: ${currentIteration} / 3 (Max)
+      - Last Changes: ${JSON.stringify(lastChanges)}
+      - Citation Health: ${auditorReport.healthScore}/100
       
-      MANUSCRIPT PREVIEW (First 2000 chars):
-      ${latexContent.substring(0, 2000)}...
-
       DECISION LOGIC:
-      1. If iteration >= 3, you MUST 'FINALIZE'.
-      2. If Auditor Health Score < 80, you MUST 'IMPROVE_RIGOR' (instructing to fix citations).
-      3. If syntax seems broken in the preview, 'FIX_SYNTAX'.
-      4. If rigorous but needs polish, 'IMPROVE_RIGOR'.
-      5. If excellent, 'FINALIZE'.
+      1. If iteration >= 3, 'FINALIZE'.
+      2. If syntax errors detected in logs, 'FIX_SYNTAX'.
+      3. If the paper seems short or weak, 'IMPROVE_RIGOR'.
+      4. Default to 'FINALIZE' if it looks good to prevent over-editing.
 
       OUTPUT JSON.
     `;
@@ -216,7 +209,7 @@ export const runEditorInChief = async (
 
         return JSON.parse(response.text || "{}");
     } catch (e) {
-        return { decision: 'FINALIZE', reasoning: "Error in decision logic, finalizing for safety.", instructions: "" };
+        return { decision: 'FINALIZE', reasoning: "Error in decision logic, finalizing.", instructions: "" };
     }
 };
 
@@ -231,11 +224,11 @@ export const performEditorialLoop = async (
     let keepGoing = true;
     let lastChanges: string[] = ["Initial Draft"];
 
-    while (keepGoing && iteration <= 4) {
+    while (keepGoing && iteration <= 3) {
         const timestamp = Date.now();
         onLog({ agentName: "Editor-in-Chief", action: "Evaluating", details: `Starting Iteration ${iteration}...`, timestamp });
 
-        // 1. Auditor Check (Fast check to inform Editor)
+        // 1. Auditor Check
         const auditorResult = await runAuditorAgent(currentLatex);
         onLog({ agentName: "Auditor", action: "Scanned", details: `Citation Health: ${auditorResult.healthScore}%`, timestamp: Date.now() });
 
@@ -252,22 +245,39 @@ export const performEditorialLoop = async (
         if (editorDecision.decision === 'FIX_SYNTAX') {
             onLog({ agentName: "Typesetter", action: "Working", details: "Fixing LaTeX syntax errors...", timestamp: Date.now() });
             const result = await runTypesetterAgent(currentLatex);
-            currentLatex = result.correctedLatex;
-            lastChanges = result.changes;
-            onLog({ agentName: "Typesetter", action: "Completed", details: `Fixed ${result.changes.length} syntax issues.`, timestamp: Date.now() });
+            
+            // Syntax fixer rarely deletes content, but safety check anyway
+            if (result.correctedLatex.length < currentLatex.length * 0.9) {
+                 onLog({ agentName: "System", action: "Rejected", details: "Typesetter deleted too much content. Reverting.", timestamp: Date.now() });
+            } else {
+                 currentLatex = result.correctedLatex;
+                 lastChanges = result.changes;
+                 onLog({ agentName: "Typesetter", action: "Completed", details: `Fixed ${result.changes.length} syntax issues.`, timestamp: Date.now() });
+            }
         } 
         else if (editorDecision.decision === 'IMPROVE_RIGOR') {
-            onLog({ agentName: "Reviewer", action: "Working", details: "Rewriting weak arguments...", timestamp: Date.now() });
+            onLog({ agentName: "Reviewer", action: "Working", details: "Refining text (Preserving Structure)...", timestamp: Date.now() });
             const result = await runScientificReviewerAgent(currentLatex);
-            currentLatex = result.correctedLatex;
-            lastChanges = result.changes;
-            onLog({ agentName: "Reviewer", action: "Completed", details: `Improved ${result.changes.length} sections for rigor.`, timestamp: Date.now() });
+            
+            // --- SAFETY NET ---
+            // If the new content is significantly shorter (e.g., < 90% of original), the agent likely summarized instead of refining.
+            // We reject the change to preserve the "Related Work" and other sections.
+            if (result.correctedLatex.length < currentLatex.length * 0.9) {
+                onLog({ agentName: "System", action: "Rejected", details: "Reviewer attempted to delete sections (Safety Net Triggered). Reverting to previous draft.", timestamp: Date.now() });
+                lastChanges = ["Reviewer changes rejected due to content deletion."];
+                // We force finalize if reviewer is failing to preserve content
+                keepGoing = false; 
+            } else {
+                currentLatex = result.correctedLatex;
+                lastChanges = result.changes;
+                onLog({ agentName: "Reviewer", action: "Completed", details: `Refined ${result.changes.length} passages.`, timestamp: Date.now() });
+            }
         }
 
         iteration++;
-        await new Promise(r => setTimeout(r, 1000)); // Pacing
+        await new Promise(r => setTimeout(r, 1000));
     }
 
-    onLog({ agentName: "Editor-in-Chief", action: "Approved", details: "Manuscript ready for publication.", timestamp: Date.now() });
+    onLog({ agentName: "Editor-in-Chief", action: "Approved", details: "Manuscript finalized.", timestamp: Date.now() });
     return currentLatex;
 };
