@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Check, Star, Zap, Infinity, BrainCircuit, Sliders } from 'lucide-react';
+import { Check, Star, Zap, Infinity, Sparkles, Gem, ShieldCheck, Crown } from 'lucide-react';
 import { LemurMascot } from './LemurMascot';
 
 const MASCOT_THOUGHTS = [
@@ -32,6 +32,7 @@ export const PricingSection: React.FC = () => {
       period: 'forever',
       projects: 3,
       description: 'Experience the power of ScholarAgent.',
+      icon: <ShieldCheck className="w-6 h-6 text-slate-400" />,
       isSub: false,
       features: []
     },
@@ -41,6 +42,7 @@ export const PricingSection: React.FC = () => {
       period: 'one-time',
       projects: 10,
       description: 'Perfect for specific assignments.',
+      icon: <Zap className="w-6 h-6 text-emerald-500" />,
       isSub: false,
       features: []
     },
@@ -50,6 +52,7 @@ export const PricingSection: React.FC = () => {
       period: 'one-time',
       projects: 20,
       description: 'Deep dive capacity for serious work.',
+      icon: <Gem className="w-6 h-6 text-purple-500" />,
       isSub: false,
       features: []
     },
@@ -59,122 +62,144 @@ export const PricingSection: React.FC = () => {
       period: '/ month',
       projects: 'Unlimited',
       description: 'The complete autonomous research suite.',
+      icon: <Crown className="w-6 h-6 text-amber-500" />,
       isSub: true,
       highlight: true,
       features: [
           'High Quality Reasoning Engine',
           'All Model Selection (Gemini 3.0)',
-          'Priority Processing'
+          'Priority Processing',
+          'Export to Overleaf'
       ]
     }
   ];
 
   return (
-    <section id="pricing" className="py-24 bg-slate-50 text-slate-900 border-t border-slate-200 relative overflow-hidden">
+    <section id="pricing" className="py-32 relative overflow-hidden bg-slate-50">
+      
+      {/* Ambient Crystal Background */}
+      <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-indigo-200/20 rounded-full blur-[120px] animate-blob"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-rose-200/20 rounded-full blur-[120px] animate-blob animation-delay-2000"></div>
+          <div className="absolute top-[40%] left-[40%] w-[40%] h-[40%] bg-emerald-100/30 rounded-full blur-[100px] animate-blob animation-delay-4000"></div>
+          
+          {/* Grid Overlay */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:60px_60px]"></div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl lg:text-4xl font-bold mb-4 text-slate-900">Fair Pricing for Every Scholar</h2>
-          <p className="text-slate-500 text-lg max-w-2xl mx-auto">
-             Start for free, grab a project pack, or subscribe for unlimited power.
+        <div className="text-center mb-20 space-y-4">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/60 backdrop-blur-md border border-white/60 shadow-sm text-indigo-600 text-xs font-bold uppercase tracking-wider mb-2">
+             <Sparkles className="w-3 h-3" /> Transparent Pricing
+          </div>
+          <h2 className="text-4xl lg:text-5xl font-bold text-slate-900 tracking-tight">
+             Invest in Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Breakthrough</span>
+          </h2>
+          <p className="text-slate-500 text-lg max-w-2xl mx-auto leading-relaxed">
+             From undergraduate essays to post-doc dissertations, we have a crystal-clear plan for you.
           </p>
         </div>
 
         {/* Mobile Mascot (Visible only on small screens) */}
         <div className="md:hidden mb-12 flex justify-center">
           <div className="relative w-32 h-32">
-             <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-white border border-slate-200 p-2.5 rounded-xl shadow-lg w-40 text-center z-10 transition-all duration-300">
+             <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm border border-slate-200 p-2.5 rounded-xl shadow-lg w-44 text-center z-10">
                 <p className="text-[10px] font-bold text-slate-700 italic leading-tight">
                    "{currentThought}"
                 </p>
-                <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-b border-r border-slate-200 transform rotate-45"></div>
+                <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white/90 border-b border-r border-slate-200 transform rotate-45"></div>
              </div>
              <LemurMascot variant="pleading" className="w-full h-full" />
           </div>
         </div>
 
         {/* Pricing Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 relative items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 relative items-end">
           {plans.map((plan) => (
             <div 
               key={plan.name} 
               className={`
-                relative flex flex-col p-6 rounded-2xl border transition-all duration-300 h-full group
+                relative flex flex-col p-8 rounded-3xl transition-all duration-500 group
                 ${plan.highlight 
-                   ? 'bg-white border-indigo-200 shadow-xl scale-[1.02] z-10 ring-4 ring-indigo-50' 
-                   : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-lg'
+                   ? 'h-[520px] z-20 shadow-[0_20px_50px_-12px_rgba(79,70,229,0.3)] bg-gradient-to-b from-white/90 to-indigo-50/50 backdrop-blur-2xl border border-white/60 ring-1 ring-white/50' 
+                   : 'h-[460px] bg-white/40 backdrop-blur-xl border border-white/50 hover:bg-white/60 hover:shadow-xl hover:-translate-y-2'
                 }
-                ${plan.isSub ? 'border-amber-200 bg-amber-50/30' : ''}
               `}
             >
+              {/* Pro Plan: Holographic Top Highlight */}
               {plan.highlight && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide shadow-md whitespace-nowrap z-20">
-                  Most Popular
-                </div>
+                 <>
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-t-3xl"></div>
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-indigo-600 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-lg whitespace-nowrap z-20 flex items-center gap-1">
+                        <Star className="w-3 h-3 fill-current" /> Most Popular
+                    </div>
+                    {/* Internal Shine Effect */}
+                    <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
+                        <div className="absolute top-0 -left-[100%] w-[50%] h-full bg-gradient-to-r from-transparent via-white/40 to-transparent skew-x-[-20deg] animate-[shimmer_3s_infinite]"></div>
+                    </div>
+                 </>
               )}
-              {plan.isSub && !plan.highlight && (
-                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-white px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide flex items-center gap-1 shadow-md z-20">
-                   <Star className="w-3 h-3 fill-current" /> Subscription
+              
+              <div className="mb-6 relative">
+                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 shadow-sm border ${plan.highlight ? 'bg-indigo-600 border-indigo-500' : 'bg-white border-white/50'}`}>
+                    {React.cloneElement(plan.icon as React.ReactElement, { className: `w-6 h-6 ${plan.highlight ? 'text-white' : ''}` })}
                  </div>
-              )}
-
-              <div className="mb-4">
-                <h3 className="text-lg font-bold text-slate-900">{plan.name}</h3>
-                <p className="text-xs text-slate-500 mt-1">{plan.description}</p>
+                 <h3 className="text-xl font-bold text-slate-900">{plan.name}</h3>
+                 <p className="text-sm text-slate-500 mt-1 font-medium">{plan.description}</p>
               </div>
 
-              <div className="flex items-baseline gap-1 mb-6">
-                <span className="text-3xl font-bold text-slate-900">{plan.price}</span>
-                <span className="text-xs text-slate-500 uppercase font-medium">{plan.period}</span>
+              <div className="flex items-baseline gap-1 mb-8">
+                <span className={`text-4xl font-black ${plan.highlight ? 'text-indigo-600' : 'text-slate-900'}`}>{plan.price}</span>
+                <span className="text-sm text-slate-400 font-bold uppercase tracking-wide">{plan.period}</span>
               </div>
 
-              <div className={`flex items-center gap-2 mb-6 p-3 rounded-lg border ${plan.highlight ? 'bg-indigo-50 border-indigo-100' : 'bg-slate-50 border-slate-100'}`}>
-                {plan.projects === 'Unlimited' ? (
-                   <Infinity className="w-5 h-5 text-amber-500" />
-                ) : (
-                   <Zap className={`w-5 h-5 ${plan.highlight ? 'text-indigo-600' : 'text-slate-400'}`} />
-                )}
-                <span className="font-semibold text-sm text-slate-700">
-                  {plan.projects === 'Unlimited' ? 'Unlimited Projects' : `${plan.projects} Projects`}
-                </span>
-              </div>
-
-              {/* Features List */}
-              {plan.features.length > 0 && (
-                  <div className="mb-6 space-y-3">
-                      {plan.features.map((feature, i) => (
-                          <div key={i} className="flex items-start gap-2 text-xs text-slate-700">
-                              <Check className="w-3 h-3 text-green-500 mt-0.5 shrink-0" />
-                              <span className="font-medium">{feature}</span>
-                          </div>
-                      ))}
+              <div className="flex-grow space-y-4 mb-8">
+                  <div className={`flex items-center gap-3 p-3 rounded-xl border ${plan.highlight ? 'bg-indigo-50/50 border-indigo-100/50' : 'bg-white/40 border-white/60'}`}>
+                     {plan.projects === 'Unlimited' ? (
+                        <Infinity className={`w-5 h-5 ${plan.highlight ? 'text-indigo-600' : 'text-slate-600'}`} />
+                     ) : (
+                        <Zap className={`w-5 h-5 ${plan.highlight ? 'text-indigo-600' : 'text-slate-400'}`} />
+                     )}
+                     <span className={`font-bold text-sm ${plan.highlight ? 'text-indigo-900' : 'text-slate-700'}`}>
+                        {plan.projects === 'Unlimited' ? 'Unlimited Projects' : `${plan.projects} Projects`}
+                     </span>
                   </div>
-              )}
 
-              <div className="mt-auto relative z-20">
+                  {plan.features.map((feature, i) => (
+                      <div key={i} className="flex items-start gap-3 text-sm text-slate-600">
+                          <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center shrink-0 mt-0.5">
+                             <Check className="w-3 h-3 text-green-600" />
+                          </div>
+                          <span className="font-medium leading-tight">{feature}</span>
+                      </div>
+                  ))}
+              </div>
+
+              <div className="relative z-20">
                 <button 
                   className={`
-                    w-full py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm
-                    ${plan.highlight || plan.isSub
-                       ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200' 
-                       : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+                    w-full py-4 rounded-xl text-sm font-bold transition-all duration-300 shadow-sm hover:scale-[1.02]
+                    ${plan.highlight 
+                       ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-indigo-200 hover:shadow-indigo-300' 
+                       : 'bg-white border-2 border-slate-100 text-slate-700 hover:border-indigo-200 hover:text-indigo-600'
                     }
                   `}
                 >
-                  {plan.price === '$0' ? 'Start Free' : plan.isSub ? 'Subscribe Now' : 'Buy Pack'}
+                  {plan.price === '$0' ? 'Get Started' : plan.isSub ? 'Unlock Pro Access' : 'Purchase Pack'}
                 </button>
               </div>
 
               {/* Anchored Mascot for Pro Plan (Desktop Only) */}
               {plan.highlight && (
-                <div className="hidden md:block absolute -right-14 -bottom-10 w-44 h-44 z-30 pointer-events-none hover:scale-105 transition-transform duration-300">
+                <div className="hidden md:block absolute -right-20 -bottom-8 w-48 h-48 z-30 pointer-events-none hover:scale-110 transition-transform duration-500 origin-bottom-left">
                    <div className="relative w-full h-full">
                         <LemurMascot variant="pleading" className="w-full h-full drop-shadow-2xl" />
-                        {/* Desktop Speech Bubble */}
-                        <div className="absolute -top-6 -right-2 bg-white border border-slate-200 p-2.5 rounded-xl rounded-bl-none shadow-lg w-36 animate-bounce-slow">
-                            <p className="text-[10px] font-bold text-slate-700 italic leading-tight text-center">
+                        {/* Desktop Speech Bubble - Glassmorphism style */}
+                        <div className="absolute -top-10 -right-4 bg-white/90 backdrop-blur-md border border-white p-3 rounded-2xl rounded-bl-none shadow-xl w-40 animate-bounce-slow">
+                            <p className="text-[10px] font-bold text-slate-800 italic leading-tight text-center">
                                 "{currentThought}"
                             </p>
-                            <div className="absolute -bottom-1.5 left-2 w-3 h-3 bg-white border-b border-r border-slate-200 transform rotate-45"></div>
+                            <div className="absolute -bottom-1.5 left-2 w-3 h-3 bg-white/90 border-b border-r border-white transform rotate-45"></div>
                         </div>
                    </div>
                 </div>
