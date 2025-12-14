@@ -14,13 +14,6 @@ export interface AgentProgress {
 
 const AGENTS_CONFIG = [
     { 
-        name: "Archive Sentinel", 
-        role: "Historian", 
-        description: "Searching for foundational theories and seminal papers (Pre-2020).",
-        color: "text-blue-600 bg-blue-50 border-blue-200",
-        promptSuffix: "Focus on highly cited, foundational papers from 2010-2020. You MUST find seminal definitions."
-    },
-    { 
         name: "Trend Scout", 
         role: "Futurist", 
         description: "Scanning for State-of-the-Art results and preprints (2023-2025).",
@@ -77,7 +70,7 @@ const runSingleAgent = async (
 
     // 1. Analysis Phase
     onUpdate({ ...agentConfig, status: 'analyzing', foundCount: 0 } as AgentProgress);
-    await new Promise(r => setTimeout(r, 1500)); // Cognitive pause
+    await new Promise(r => setTimeout(r, 1000)); // Reduced pause
 
     // 2. Search Phase
     onUpdate({ ...agentConfig, status: 'searching', foundCount: 0 } as AgentProgress);
@@ -128,7 +121,7 @@ const runSingleAgent = async (
 
         // Enforce minimum execution time (simulating "reading")
         const elapsedTime = Date.now() - startTime;
-        const minTime = 3000 + Math.random() * 2000;
+        const minTime = 2000 + Math.random() * 1500;
         if (elapsedTime < minTime) {
             await new Promise(r => setTimeout(r, minTime - elapsedTime));
         }
@@ -173,7 +166,7 @@ export const orchestrateDeepSearch = async (
         onAgentUpdate(config.name, { ...config, status: 'idle', foundCount: 0 } as AgentProgress);
         
         // Stagger execution significantly to prevent rate limits and make UI look "busy"
-        await new Promise(resolve => setTimeout(resolve, index * 2000));
+        await new Promise(resolve => setTimeout(resolve, index * 1500));
 
         return runSingleAgent(config, topic, abstract, (p) => onAgentUpdate(config.name, p));
     });

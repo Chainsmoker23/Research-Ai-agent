@@ -382,6 +382,78 @@ export const generateDraftAbstract = async (
   return JSON.parse(response.text || "{}");
 };
 
+// HELPER: Get Section Specific Instructions to ensure length and depth
+const getSectionInstructions = (sectionName: string): string => {
+    const name = sectionName.toLowerCase();
+
+    if (name.includes("introduction")) {
+        return `
+            LENGTH REQUIREMENT: 900-1100 words.
+            STRUCTURE REQUIREMENTS:
+            - Subsection 1.1: Background & Context (Define the general field, historical context).
+            - Subsection 1.2: Problem Statement (Specific technical challenge, why it is unsolved).
+            - Subsection 1.3: Limitations of Existing Approaches (Briefly mention why current state of art fails).
+            - Subsection 1.4: Proposed Solution & Contributions (Bulleted list of contributions).
+            - Subsection 1.5: Paper Organization.
+            
+            STYLE: Use a "Funnel" approach: start broad, narrow down to the specific gap.
+        `;
+    }
+
+    if (name.includes("related") || name.includes("literature")) {
+        return `
+            LENGTH REQUIREMENT: 1000-1200 words.
+            STRUCTURE REQUIREMENTS:
+            - Organize related work by THEME, not just list papers. 
+            - Example: "Subsection 2.1: Approaches based on X", "Subsection 2.2: Approaches based on Y".
+            - You MUST critically analyze each cited paper, explaining why your approach differs or improves upon it.
+            - Do not simply summarize; SYNTHESIZE the literature gaps.
+        `;
+    }
+
+    if (name.includes("method")) {
+        return `
+            LENGTH REQUIREMENT: 1000+ words.
+            STRUCTURE REQUIREMENTS:
+            - Subsection 3.1: Theoretical Framework / Formal Definition (Define variables, sets, problem space).
+            - Subsection 3.2: Architecture Overview (High level).
+            - Subsection 3.3: Core Algorithm (Deep dive).
+            - Subsection 3.4: Implementation Details.
+            
+            RIGOR REQUIREMENTS:
+            - You MUST use LaTeX equations (\\begin{equation}...) to define loss functions, constraints, or transformations.
+            - Do not be vague. Define the math.
+        `;
+    }
+
+    if (name.includes("result") || name.includes("experiment")) {
+        return `
+            LENGTH REQUIREMENT: 800-1000 words.
+            STRUCTURE REQUIREMENTS:
+            - Subsection 4.1: Experimental Setup (Datasets, Hyperparameters, Baselines).
+            - Subsection 4.2: Main Results (Quantitative comparison).
+            - Subsection 4.3: Ablation Studies (Analyze components).
+            - Subsection 4.4: Qualitative Analysis (Visual examples discussion).
+            
+            DATA GENERATION:
+            - Hallucinate PLAUSIBLE, CONSISTENT data. Use concrete numbers (e.g., "Our method achieved 84.5% accuracy vs 81.2% for Baseline").
+            - Discuss the *statistical significance* of the results.
+        `;
+    }
+
+    if (name.includes("discussion")) {
+        return `
+            LENGTH REQUIREMENT: 600-800 words.
+            STRUCTURE REQUIREMENTS:
+            - Interpret the findings. Why did it work?
+            - Discuss Limitations honestly (Subsection 5.2).
+            - Theoretical implications.
+        `;
+    }
+
+    return "LENGTH REQUIREMENT: 600-800 words. Structure with logical subsections.";
+};
+
 export const generateDraftSection = async (
   sectionName: string,
   fullDraftContext: string,
@@ -399,43 +471,53 @@ export const generateDraftSection = async (
     return `[${key}] ${r.title} (${r.year})`;
   }).join("\n");
 
+  const specializedInstructions = getSectionInstructions(sectionName);
+
   const prompt = `
-    ROLE: World-Class Academic Researcher & Technical Writer.
-    TASK: Write the "${sectionName}" section of the paper.
+    ROLE: Senior Lead Researcher & Academic Author.
+    TASK: Write the **${sectionName}** section of a high-impact research paper.
     
-    Context (Draft So Far):
-    ${fullDraftContext.substring(0, 20000)} ... [truncated]
+    RESEARCH TOPIC: ${topic}
+    METHODOLOGY: ${methodology.name} (${methodology.description})
+    
+    CONTEXT (Paper so far):
+    ${fullDraftContext.substring(0, 5000)}... [truncated]
 
-    Current Topic: ${topic}
-    Methodology: ${methodology.name}
-
-    Available References (You MUST cite relevant ones using \\cite{key}):
+    AVAILABLE REFERENCES (You MUST cite these frequently using \\cite{key}):
     ${refString}
 
-    CRITICAL INSTRUCTIONS FOR HIGH SCORES:
-    1. **MANDATORY Visual Placeholders**: You MUST insert LaTeX placeholders for Figures or Tables in this section if appropriate (e.g. for Results, Methodology, or Architecture). 
-       - DO NOT SKIP THIS. The user needs to see where to put their images.
-       - Syntax:
-         \\begin{figure}[htbp]
-           \\centering
-           \\fbox{\\begin{minipage}{0.9\\textwidth}\\centering\\vspace{2cm} [PLACEHOLDER: Describe diagram/chart here] \\vspace{2cm}\\end{minipage}}
-           \\caption{Descriptive caption.}
-           \\label{fig:placeholder}
-         \\end{figure}
+    ================================================================
+    SECTION SPECIFIC INSTRUCTIONS (CRITICAL FOR ACCEPTANCE):
+    ${specializedInstructions}
+    ================================================================
 
-    2. **Deep Technical Density**: Do not write fluff. Write dense, mathematical, and algorithmic content.
-       - If writing Methodology: Define equations, variables, and algorithms formally.
-       - If writing Results: Hallucinate PLAUSIBLE, CONSISTENT simulation data. You are a simulation agent. Do not say "we will measure". Say "we measured X and found Y". Use numbers!
+    GENERAL WRITING RULES:
+    1. **ACADEMIC DENSITY**: Avoid fluff. Write dense, high-entropy academic prose. Use specific terminology.
+    2. **SUBSECTIONS**: You MUST use \\subsection{} and \\subsubsection{} to structure the text logically. Do not output a wall of text.
+    3. **VISUAL PLACEHOLDERS**: 
+       - Do NOT output \\begin{figure}... blocks that try to render images (this causes errors).
+       - Instead, insert explicit comments for where figures/tables should go, describing them in detail.
+       - FORMAT: 
+         % ---------------------------------------------------------
+         % [INSERT TABLE 1 HERE]: Comparison of accuracy metrics...
+         % Columns: Method, Precision, Recall, F1-Score
+         % ---------------------------------------------------------
+    4. **MATH**: Use LaTeX environments \\begin{equation} ... \\end{equation} for all formulas. Define all variables.
+    5. **LENGTH**: adhere strictly to the length requirements. 
     
-    3. **Tone**: Rigorous, objective, and authoritative. Avoid passive voice.
-
-    4. **LaTeX Only**: Output ONLY valid LaTeX code for this section. No markdown blocks.
+    OUTPUT FORMAT:
+    - ONLY valid LaTeX code for the section content. 
+    - Do NOT include \\documentclass or \\begin{document}. 
+    - Do NOT wrap in markdown blocks like \`\`\`latex.
   `;
 
+  // Use a high thinking budget for complex sections
   const result = await ai.models.generateContentStream({
     model: modelId,
     contents: prompt,
-    config: { thinkingConfig: { thinkingBudget: 4096 } }
+    config: { 
+        thinkingConfig: { thinkingBudget: 8192 } // Increased budget for deep planning and length
+    }
   });
 
   let fullText = "";
@@ -446,6 +528,11 @@ export const generateDraftSection = async (
       onChunk(fullText);
     }
   }
+
+  if (!fullText || fullText.trim().length === 0) {
+      throw new Error("Agent produced empty output. This may be due to safety filters or overload.");
+  }
+
   return fullText;
 };
 

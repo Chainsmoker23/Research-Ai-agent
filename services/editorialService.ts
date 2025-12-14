@@ -157,127 +157,35 @@ export const runAuditorAgent = async (latexContent: string): Promise<{ issues: s
   }
 };
 
-// --- AGENT 4: EDITOR-IN-CHIEF (Orchestrator) ---
-export const runEditorInChief = async (
-    currentIteration: number,
-    latexContent: string,
-    auditorReport: { issues: string[], healthScore: number },
-    lastChanges: string[]
-): Promise<{ 
-    decision: 'FIX_SYNTAX' | 'IMPROVE_RIGOR' | 'FINALIZE'; 
-    reasoning: string;
-    instructions: string 
-}> => {
-    const ai = getGeminiClient('EDITORIAL', 'Chief');
-    const modelId = "gemini-3-pro-preview";
-
-    const prompt = `
-      ROLE: Editor-in-Chief.
-      TASK: Manage the revision process.
-      
-      CONTEXT:
-      - Iteration: ${currentIteration} / 3 (Max)
-      - Last Changes: ${JSON.stringify(lastChanges)}
-      - Citation Health: ${auditorReport.healthScore}/100
-      
-      DECISION LOGIC:
-      1. If iteration >= 3, 'FINALIZE'.
-      2. If syntax errors detected in logs, 'FIX_SYNTAX'.
-      3. If the paper seems short or weak, 'IMPROVE_RIGOR'.
-      4. Default to 'FINALIZE' if it looks good to prevent over-editing.
-
-      OUTPUT JSON.
-    `;
-
-    try {
-        const response = await ai.models.generateContent({
-            model: modelId,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        decision: { type: Type.STRING, enum: ['FIX_SYNTAX', 'IMPROVE_RIGOR', 'FINALIZE'] },
-                        reasoning: { type: Type.STRING },
-                        instructions: { type: Type.STRING }
-                    },
-                    required: ["decision", "reasoning", "instructions"]
-                }
-            }
-        });
-
-        return JSON.parse(response.text || "{}");
-    } catch (e) {
-        return { decision: 'FINALIZE', reasoning: "Error in decision logic, finalizing.", instructions: "" };
-    }
-};
-
-// --- MAIN LOOP EXPORT ---
+// --- MAIN LOOP EXPORT (Linear Pipeline) ---
 export const performEditorialLoop = async (
     initialLatex: string, 
     onLog: (log: EditorialLog) => void
 ): Promise<string> => {
     
     let currentLatex = initialLatex;
-    let iteration = 1;
-    let keepGoing = true;
-    let lastChanges: string[] = ["Initial Draft"];
-
-    while (keepGoing && iteration <= 3) {
-        const timestamp = Date.now();
-        onLog({ agentName: "Editor-in-Chief", action: "Evaluating", details: `Starting Iteration ${iteration}...`, timestamp });
-
-        // 1. Auditor Check
-        const auditorResult = await runAuditorAgent(currentLatex);
-        onLog({ agentName: "Auditor", action: "Scanned", details: `Citation Health: ${auditorResult.healthScore}%`, timestamp: Date.now() });
-
-        // 2. Editor Decision
-        const editorDecision = await runEditorInChief(iteration, currentLatex, auditorResult, lastChanges);
-        onLog({ agentName: "Editor-in-Chief", action: "Decision", details: `${editorDecision.decision}: ${editorDecision.reasoning}`, timestamp: Date.now() });
-
-        if (editorDecision.decision === 'FINALIZE') {
-            keepGoing = false;
-            break;
-        }
-
-        // 3. Execute Decision
-        if (editorDecision.decision === 'FIX_SYNTAX') {
-            onLog({ agentName: "Typesetter", action: "Working", details: "Fixing LaTeX syntax errors...", timestamp: Date.now() });
-            const result = await runTypesetterAgent(currentLatex);
-            
-            // Syntax fixer rarely deletes content, but safety check anyway
-            if (result.correctedLatex.length < currentLatex.length * 0.9) {
-                 onLog({ agentName: "System", action: "Rejected", details: "Typesetter deleted too much content. Reverting.", timestamp: Date.now() });
-            } else {
-                 currentLatex = result.correctedLatex;
-                 lastChanges = result.changes;
-                 onLog({ agentName: "Typesetter", action: "Completed", details: `Fixed ${result.changes.length} syntax issues.`, timestamp: Date.now() });
-            }
-        } 
-        else if (editorDecision.decision === 'IMPROVE_RIGOR') {
-            onLog({ agentName: "Reviewer", action: "Working", details: "Refining text (Preserving Structure)...", timestamp: Date.now() });
-            const result = await runScientificReviewerAgent(currentLatex);
-            
-            // --- SAFETY NET ---
-            // If the new content is significantly shorter (e.g., < 90% of original), the agent likely summarized instead of refining.
-            // We reject the change to preserve the "Related Work" and other sections.
-            if (result.correctedLatex.length < currentLatex.length * 0.9) {
-                onLog({ agentName: "System", action: "Rejected", details: "Reviewer attempted to delete sections (Safety Net Triggered). Reverting to previous draft.", timestamp: Date.now() });
-                lastChanges = ["Reviewer changes rejected due to content deletion."];
-                // We force finalize if reviewer is failing to preserve content
-                keepGoing = false; 
-            } else {
-                currentLatex = result.correctedLatex;
-                lastChanges = result.changes;
-                onLog({ agentName: "Reviewer", action: "Completed", details: `Refined ${result.changes.length} passages.`, timestamp: Date.now() });
-            }
-        }
-
-        iteration++;
-        await new Promise(r => setTimeout(r, 1000));
+    
+    // Step 1: Typesetter (Fix Syntax)
+    onLog({ agentName: "Typesetter", action: "Working", details: "Correcting LaTeX syntax and compilation errors...", timestamp: Date.now() });
+    const typesetterResult = await runTypesetterAgent(currentLatex);
+    if (typesetterResult.correctedLatex.length > currentLatex.length * 0.9) {
+        currentLatex = typesetterResult.correctedLatex;
+        onLog({ agentName: "Typesetter", action: "Completed", details: `Fixed ${typesetterResult.changes.length} formatting issues.`, timestamp: Date.now() });
     }
 
-    onLog({ agentName: "Editor-in-Chief", action: "Approved", details: "Manuscript finalized.", timestamp: Date.now() });
+    // Step 2: Scientific Reviewer (Polish Text)
+    onLog({ agentName: "Reviewer", action: "Working", details: "Polishing academic tone and quantifying claims...", timestamp: Date.now() });
+    const reviewerResult = await runScientificReviewerAgent(currentLatex);
+    if (reviewerResult.correctedLatex.length > currentLatex.length * 0.9) {
+        currentLatex = reviewerResult.correctedLatex;
+        onLog({ agentName: "Reviewer", action: "Completed", details: `Refined ${reviewerResult.changes.length} passages.`, timestamp: Date.now() });
+    }
+
+    // Step 3: Auditor (Final Check)
+    onLog({ agentName: "Auditor", action: "Working", details: "Validating citation integrity...", timestamp: Date.now() });
+    const auditorResult = await runAuditorAgent(currentLatex);
+    onLog({ agentName: "Auditor", action: "Completed", details: `Final Citation Health: ${auditorResult.healthScore}%`, timestamp: Date.now() });
+
+    onLog({ agentName: "System", action: "Finished", details: "Editorial process complete. Manuscript ready.", timestamp: Date.now() });
     return currentLatex;
 };

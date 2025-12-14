@@ -132,3 +132,25 @@ export interface EditorialState {
   qualityScore: number;
   isComplete: boolean;
 }
+
+// --- NEW: QUALITY SERVICES TYPES ---
+
+export interface CritiqueResult {
+  issuesFound: string[];
+  critiqueScore: number; // 1-10
+  isAcceptable: boolean;
+  improvedContent?: string;
+}
+
+export interface SyntheticDataResult {
+  pythonCode: string;
+  csvData: string;
+  latexTable: string;
+  description: string;
+}
+
+export interface ConsistencyCheckResult {
+  undefinedVariables: string[];
+  inconsistentNotation: string[];
+  score: number;
+}

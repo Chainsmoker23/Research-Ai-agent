@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Twitter, Github, Linkedin, Mail, Heart, MapPin, Phone, Key } from 'lucide-react';
+import { Twitter, Github, Linkedin, Mail, Heart, MapPin, Phone, Key, Bot } from 'lucide-react';
 import { LemurMascot } from './LemurMascot';
 import { AppStep } from '../types';
 import { getKeyCount } from '../services/geminiClient';
@@ -123,14 +123,18 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                 <a href="#" className="text-xs text-slate-600 hover:text-slate-400">Cookie Settings</a>
              </div>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5 text-xs text-indigo-400 bg-indigo-950/30 px-3 py-1 rounded-full border border-indigo-900/50">
+               <Bot className="w-3 h-3" />
+               <span className="font-bold">16 Agents Online</span>
+            </div>
             {keyCount > 1 && (
                <div className="flex items-center gap-1.5 text-xs text-emerald-500 bg-emerald-950/30 px-3 py-1 rounded-full border border-emerald-900/50">
                   <Key className="w-3 h-3" />
                   <span className="font-bold">{keyCount} API Keys Active</span>
                </div>
             )}
-            <div className="flex items-center gap-1 text-sm text-slate-500">
+            <div className="flex items-center gap-1 text-sm text-slate-500 ml-4">
                 <span>Made with</span>
                 <Heart className="h-3 w-3 text-red-500 fill-current" />
                 <span>using Google Gemini</span>

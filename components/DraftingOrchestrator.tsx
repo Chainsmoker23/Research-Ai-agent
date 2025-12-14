@@ -5,11 +5,14 @@ import * as GeminiService from '../services/geminiService';
 import * as DeepSearchService from '../services/deepSearchService';
 import * as EditorialService from '../services/editorialService';
 import * as ReviewService from '../services/reviewService';
+import * as CritiqueService from '../services/quality/critiqueService';
+import * as SynthesisService from '../services/quality/synthesisService';
+
 import { AuthorMetadataForm } from './AuthorMetadataForm';
 import { LatexPreview } from './LatexPreview';
 import { ReviewReportView } from './ReviewReportView';
 import { TEMPLATES } from '../constants';
-import { CheckCircle2, Circle, Loader2, Play, RefreshCw, AlertTriangle, BookOpen, Database, ScanSearch, History, TrendingUp, Microscope, SearchX, Gavel, FileCode, CheckCheck, UserCheck, ShieldAlert, X } from 'lucide-react';
+import { CheckCircle2, Circle, Loader2, Play, RefreshCw, AlertTriangle, BookOpen, Database, ScanSearch, History, TrendingUp, Microscope, SearchX, Gavel, FileCode, CheckCheck, UserCheck, ShieldAlert, X, BrainCircuit, Terminal, Scale } from 'lucide-react';
 
 interface DraftingOrchestratorProps {
   topic: ResearchTopic;
@@ -23,7 +26,8 @@ type DraftSection = {
   id: string;
   name: string;
   content: string;
-  status: 'pending' | 'drafting' | 'completed';
+  status: 'pending' | 'drafting' | 'critiquing' | 'completed' | 'error';
+  errorMsg?: string;
 };
 
 export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
@@ -54,6 +58,9 @@ export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
   const [isRunningReview, setIsRunningReview] = useState(false);
   const [reviewReport, setReviewReport] = useState<ReviewReport | null>(null);
   const [reviewAgent, setReviewAgent] = useState<string | null>(null);
+
+  // Quality State
+  const [currentAction, setCurrentAction] = useState<string>("");
 
   // Sections State
   const [sections, setSections] = useState<DraftSection[]>([
@@ -159,7 +166,6 @@ export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
 
   const generateNextSection = async (index: number, currentRefs: Reference[] = references) => {
     if (index >= sections.length) {
-      // Instead of automatically starting editorial, offer choice
       setStep('review_choice');
       return;
     }
@@ -167,21 +173,43 @@ export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
     const section = sections[index];
     setCurrentSectionIdx(index);
     
-    setSections(prev => prev.map((s, i) => i === index ? { ...s, status: 'drafting' } : s));
+    // Reset state for this section
+    setSections(prev => prev.map((s, i) => i === index ? { ...s, status: 'drafting', errorMsg: undefined } : s));
     setStreamingContent("");
-
-    const context = `
-      Title: ${draftTitle}
-      Abstract: ${draftAbstract}
-      
-      Paper Structure:
-      ${sections.map(s => s.name).join(", ")}
-
-      Completed Sections:
-      ${sections.slice(0, index).map(s => `--- ${s.name} ---\n${s.content}`).join("\n\n")}
-    `;
-
+    
     try {
+      // 1. Synthetic Data Injection
+      let injectedContext = "";
+      if (section.name.includes("Results") || section.name.includes("Methodology")) {
+         setCurrentAction("Computational Scientist: Simulating experiment...");
+         try {
+             const syntheticData = await SynthesisService.generateSyntheticExperiment(topic.title, methodology.name);
+             if (syntheticData) {
+                injectedContext = `
+                  [SYSTEM NOTE: SYNTHETIC DATA GENERATED]
+                  Python Code: ${syntheticData.pythonCode.substring(0, 300)}...
+                  Data Summary: ${syntheticData.description}
+                  
+                  MANDATORY REQUIREMENT:
+                  You MUST include the following LaTeX table in the text exactly as provided below:
+                  ${syntheticData.latexTable}
+                `;
+             }
+         } catch (err) {
+             console.warn("Synthetic data failed, proceeding without it.");
+         }
+      }
+
+      const context = `
+        Title: ${draftTitle}
+        Abstract: ${draftAbstract}
+        Structure: ${sections.map(s => s.name).join(", ")}
+        Completed Sections: ${sections.slice(0, index).map(s => `--- ${s.name} ---\n${s.content}`).join("\n\n")}
+        ${injectedContext}
+      `;
+
+      // 2. Draft Initial Content
+      setCurrentAction("Author Agent: Drafting section content...");
       const content = await GeminiService.generateDraftSection(
         section.name, 
         context, 
@@ -191,13 +219,42 @@ export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
         (chunk) => setStreamingContent(chunk)
       );
 
-      setSections(prev => prev.map((s, i) => i === index ? { ...s, content: content, status: 'completed' } : s));
-    } catch (e) {
-      console.error(e);
+      // 3. Iterative Self-Critique
+      setCurrentAction("Reviewer Agent: Critiquing and refining...");
+      setSections(prev => prev.map((s, i) => i === index ? { ...s, status: 'critiquing', content } : s));
+      
+      const critiqueResult = await CritiqueService.critiqueAndRefineSection(section.name, content, topic.title);
+      
+      // 4. Success - Move to next
+      const finalContent = critiqueResult.improvedContent || content;
+      
+      setSections(prev => prev.map((s, i) => i === index ? { 
+          ...s, 
+          content: finalContent, 
+          status: 'completed' 
+      } : s));
+
+      setCurrentAction("Section complete.");
+      
+      setTimeout(() => {
+          generateNextSection(index + 1, currentRefs);
+      }, 500);
+
+    } catch (e: any) {
+      console.error(`Section ${section.name} failed:`, e);
+      setCurrentAction("Error encountered.");
+      setSections(prev => prev.map((s, i) => i === index ? { 
+          ...s, 
+          status: 'error', 
+          errorMsg: e.message || "Generation failed." 
+      } : s));
     }
   };
 
-  // Compile Latex with Dynamic Template Support
+  const handleRetrySection = (index: number) => {
+      generateNextSection(index, references);
+  };
+
   const compileRawLatex = (targetTemplate: LatexTemplate = activeTemplate) => {
       if (!authorData) return "";
       
@@ -207,16 +264,12 @@ export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
 ${s.content}
     `).join("\n");
 
-      // Custom Raw Template Engine (e.g., Springer)
       if (targetTemplate.rawTemplate) {
           let latex = targetTemplate.rawTemplate;
-          
-          // Name Splitting for Springer-like formats
           const nameParts = authorData.fullName.split(' ');
           const surName = nameParts.length > 1 ? nameParts.pop() || "" : "";
           const firstName = nameParts.join(" ") || authorData.fullName;
 
-          // Use split/join for global replacement
           latex = latex.split('{{TITLE}}').join(draftTitle);
           latex = latex.split('{{TITLE_SHORT}}').join(draftTitle.substring(0, 50) + "...");
           latex = latex.split('{{AUTHOR_FNM}}').join(firstName);
@@ -233,7 +286,6 @@ ${s.content}
           return latex;
       }
 
-      // Default/Legacy Template Engine (IEEE/ACM constructed manually)
       const preamble = `
 ${targetTemplate.classFile}
 \\usepackage{amsmath,amssymb,amsfonts}
@@ -277,6 +329,7 @@ ${draftKeywords.join(", ")}
       const rawLatex = compileRawLatex();
       
       try {
+          // Simplified Linear Pipeline: Typesetter -> Reviewer -> Auditor
           const polishedLatex = await EditorialService.performEditorialLoop(rawLatex, (log) => {
               setEditorialLogs(prev => [...prev, log]);
           });
@@ -290,7 +343,6 @@ ${draftKeywords.join(", ")}
       }
   };
 
-  // Handle Template Switch in Final View
   const handleTemplateChange = (templateId: string) => {
       const newTemplate = TEMPLATES.find(t => t.id === templateId);
       if (newTemplate) {
@@ -334,8 +386,6 @@ ${draftKeywords.join(", ")}
 
   if (step === 'metadata') return <AuthorMetadataForm onSubmit={handleMetadataSubmit} isLoading={false} />;
 
-  // ... (Abstract, Gathering, Sections, Review Choice, Editorial Polish renderers remain same)
-  
   if (step === 'abstract') {
     return (
       <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
@@ -388,7 +438,7 @@ ${draftKeywords.join(", ")}
                 <h2 className="text-3xl font-bold text-slate-900 mb-2">Deep Knowledge Retrieval</h2>
                 <p className="text-slate-500">{gatheringStatus}</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 justify-center">
                 {Object.values(agentStates).map((agent: DeepSearchService.AgentProgress) => (
                     <div key={agent.name} className={`bg-white rounded-xl border-2 p-6 shadow-sm flex flex-col items-center text-center transition-all ${agent.status === 'searching' ? 'border-indigo-400 shadow-indigo-100 scale-105' : 'border-slate-100'}`}>
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${agent.color.replace('text', 'bg').replace('border', 'bg').split(' ')[1]} ${agent.color.split(' ')[0]}`}>
@@ -442,10 +492,6 @@ ${draftKeywords.join(", ")}
                         Start Editorial Review <Gavel className="w-5 h-5" />
                     </button>
                 </div>
-                
-                <div className="mt-6 text-xs text-slate-400 bg-slate-50 inline-block px-3 py-1 rounded-full">
-                    Review adds approximately 2-3 minutes to the process.
-                </div>
             </div>
         </div>
     );
@@ -458,18 +504,17 @@ ${draftKeywords.join(", ")}
           { name: "Typesetter", role: "LaTeX Fixer", icon: <FileCode className="w-6 h-6"/>, color: "bg-blue-100 text-blue-600" },
           { name: "Reviewer", role: "Scientific Rigor", icon: <UserCheck className="w-6 h-6"/>, color: "bg-purple-100 text-purple-600" },
           { name: "Auditor", role: "Citation Check", icon: <CheckCheck className="w-6 h-6"/>, color: "bg-emerald-100 text-emerald-600" },
-          { name: "Editor-in-Chief", role: "Orchestrator", icon: <Gavel className="w-6 h-6"/>, color: "bg-slate-800 text-white" }
       ];
 
       return (
           <div className="max-w-5xl mx-auto py-12 px-4 animate-fade-in">
               <div className="text-center mb-12">
                   <h2 className="text-3xl font-bold text-slate-900 mb-2">Editorial Board in Session</h2>
-                  <p className="text-slate-500">Autonomous agents are reviewing and polishing the final manuscript...</p>
+                  <p className="text-slate-500">Autonomous agents are polishing the final manuscript...</p>
               </div>
 
               {/* Agent Avatars */}
-              <div className="flex justify-center gap-8 mb-12">
+              <div className="flex justify-center gap-8 mb-12 flex-wrap">
                   {agents.map(a => {
                       const isActive = activeAgent === a.name;
                       return (
@@ -500,7 +545,7 @@ ${draftKeywords.join(", ")}
                       {editorialLogs.map((log, i) => (
                           <div key={i} className="font-mono text-xs animate-fade-in-up">
                               <span className="text-slate-500">[{new Date(log.timestamp).toLocaleTimeString().split(' ')[0]}]</span>{" "}
-                              <span className={`${log.agentName === 'Editor-in-Chief' ? 'text-amber-400' : 'text-blue-400'} font-bold`}>{log.agentName}</span>:{" "}
+                              <span className={`${log.agentName === 'Reviewer' ? 'text-purple-400' : 'text-blue-400'} font-bold`}>{log.agentName}</span>:{" "}
                               <span className="text-slate-300">{log.details}</span>
                           </div>
                       ))}
@@ -510,7 +555,7 @@ ${draftKeywords.join(", ")}
                   {/* Progress Indication */}
                   <div className="mt-4 pt-4 border-t border-slate-800 flex justify-between items-center text-xs text-slate-500">
                       <span>Status: <span className="text-green-400 animate-pulse">Active</span></span>
-                      <span>Target Quality: &gt;95/100</span>
+                      <span>Phase: Final Polish</span>
                   </div>
               </div>
           </div>
@@ -532,8 +577,10 @@ ${draftKeywords.join(", ")}
                  <div key={s.id} className={`p-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-colors
                     ${idx === currentSectionIdx ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'text-slate-600'}
                     ${s.status === 'completed' ? 'bg-green-50 text-green-700' : ''}
+                    ${s.status === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : ''}
                  `}>
                     {s.status === 'completed' ? <CheckCircle2 className="w-4 h-4" /> : 
+                     s.status === 'error' ? <AlertTriangle className="w-4 h-4" /> :
                      idx === currentSectionIdx ? <Loader2 className="w-4 h-4 animate-spin" /> : 
                      <Circle className="w-4 h-4 text-slate-300" />}
                     {s.name}
@@ -547,16 +594,34 @@ ${draftKeywords.join(", ")}
             <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
                <h3 className="font-bold text-slate-800 flex items-center gap-2">
                  Drafting: {sections[currentSectionIdx].name}
-                 {sections[currentSectionIdx].status === 'drafting' && <span className="text-xs font-normal text-indigo-600 animate-pulse">(Writing...)</span>}
+                 <span className="text-xs font-normal text-slate-500 ml-2">
+                     {currentAction ? `(${currentAction})` : ''}
+                 </span>
                </h3>
             </div>
             
             <div className="flex-grow p-6 overflow-y-auto bg-slate-900 text-slate-300 font-mono text-sm">
-                <pre className="whitespace-pre-wrap">
-                   {sections[currentSectionIdx].status === 'drafting' 
-                      ? streamingContent 
-                      : sections[currentSectionIdx].content || "Waiting for agent..."}
-                </pre>
+                {sections[currentSectionIdx].status === 'error' ? (
+                    <div className="flex flex-col items-center justify-center h-full text-red-400 space-y-4">
+                        <AlertTriangle className="w-12 h-12" />
+                        <div className="text-center">
+                            <h4 className="text-lg font-bold">Generation Failed</h4>
+                            <p className="text-sm max-w-md mt-2">{sections[currentSectionIdx].errorMsg}</p>
+                        </div>
+                        <button 
+                            onClick={() => handleRetrySection(currentSectionIdx)}
+                            className="px-6 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors flex items-center gap-2"
+                        >
+                            <RefreshCw className="w-4 h-4" /> Retry Agent
+                        </button>
+                    </div>
+                ) : (
+                    <pre className="whitespace-pre-wrap">
+                    {sections[currentSectionIdx].status === 'drafting' 
+                        ? streamingContent 
+                        : sections[currentSectionIdx].content || "Waiting for agent..."}
+                    </pre>
+                )}
             </div>
 
             <div className="p-4 border-t border-slate-200 bg-white flex justify-end gap-3">
@@ -569,11 +634,11 @@ ${draftKeywords.join(", ")}
                         {currentSectionIdx === sections.length - 1 ? "Finish Drafting" : "Next Section"} <Play className="w-4 h-4" />
                      </button>
                   </>
-               ) : (
+               ) : sections[currentSectionIdx].status !== 'error' ? (
                   <span className="text-sm text-slate-500 italic flex items-center gap-2">
-                     <Loader2 className="w-4 h-4 animate-spin" /> Agent is thinking...
+                     <Loader2 className="w-4 h-4 animate-spin" /> {currentAction || "Agent is thinking..."}
                   </span>
-               )}
+               ) : null}
             </div>
         </div>
       </div>

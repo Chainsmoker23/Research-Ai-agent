@@ -180,7 +180,7 @@ export const performPeerReview = async (
     const mimeType = file.type;
 
     // --- PHASE 1: REFERENCE AUDIT ---
-    onAgentStart("Citation Scanner");
+    // Runs silently (no onAgentStart) to speed up perceived time, or we can just say "Initializing"
     const extractedRefs = await extractReferencesFromPdf(base64, mimeType);
     
     // Validate batches against OpenAlex/Crossref
@@ -212,7 +212,6 @@ export const performPeerReview = async (
       - Citation Health Score: ${healthScore}/100
       - Suspicious Entries: ${unverifiedRefs.map(r => `"${r.title}"`).join(", ")}
     `;
-    onAgentFinish("Citation Scanner");
 
     // --- PHASE 2: AGENT SIMULATION ---
 
@@ -234,12 +233,6 @@ export const performPeerReview = async (
             role: "Linguistic & Structure Specialist",
             focus: "Writing quality, flow, argumentation structure, figure clarity, and adherence to academic tone.",
             needsAudit: false
-        },
-        {
-            name: "Reviewer #2",
-            role: "Critical Adversarial Reviewer",
-            focus: "Finding fatal flaws, novelty assessment, comparing against state-of-the-art, and identifying missing citations.",
-            needsAudit: false
         }
     ];
 
@@ -259,9 +252,7 @@ export const performPeerReview = async (
         onAgentFinish(agent.name);
     }
 
-    // Synthesis Step (Editor in Chief)
-    onAgentStart("Editor-in-Chief");
-    
+    // Synthesis (Simple avg now, removed Chief Agent)
     const avgScore = results.reduce((acc, r) => acc + r.score, 0) / results.length; // 0-10
     const normalizedScore = Math.round(avgScore * 10); // 0-100
 
@@ -283,13 +274,10 @@ export const performPeerReview = async (
         overallScore: normalizedScore,
         finalVerdict: finalVerdict,
         acceptanceProbability: normalizedScore > 80 && healthScore > 90 ? "High (>80%)" : normalizedScore > 60 ? "Medium (40-60%)" : "Low (<20%)",
-        summary: `The panel has concluded. Citation Health is ${healthScore}%. ${results[1].agentName} flagged ${auditData.unverified} unverified references. ${results[0].agentName} evaluated the methodology.`,
+        summary: `The panel has concluded. Citation Health is ${healthScore}%. ${results[1].agentName} flagged ${auditData.unverified} unverified references.`,
         agentReviews: results,
         referenceAudit: auditData
     };
     
-    await new Promise(r => setTimeout(r, 1500));
-    onAgentFinish("Editor-in-Chief");
-
     return report;
 };

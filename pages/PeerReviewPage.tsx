@@ -11,12 +11,9 @@ interface PeerReviewPageProps {
 
 // Agent definitions for UI visualization
 const AGENTS_UI = [
-  { id: "Citation Scanner", name: "Citation Scanner", role: "Verification Bot", icon: <ScanSearch className="w-5 h-5" />, color: "text-emerald-600", bg: "bg-emerald-100", border: "border-emerald-200" },
   { id: "Dr. Methodos", name: "Dr. Methodos", role: "Methodology", icon: <Microscope className="w-5 h-5" />, color: "text-blue-600", bg: "bg-blue-100", border: "border-blue-200" },
   { id: "The Citation Police", name: "Citation Police", role: "Audit Officer", icon: <Link2 className="w-5 h-5" />, color: "text-orange-600", bg: "bg-orange-100", border: "border-orange-200" },
   { id: "Prof. Clarity", name: "Prof. Clarity", role: "Structure & Style", icon: <Feather className="w-5 h-5" />, color: "text-purple-600", bg: "bg-purple-100", border: "border-purple-200" },
-  { id: "Reviewer #2", name: "Reviewer #2", role: "The Critic", icon: <ShieldAlert className="w-5 h-5" />, color: "text-rose-600", bg: "bg-rose-100", border: "border-rose-200" },
-  { id: "Editor-in-Chief", name: "Editor-in-Chief", role: "Final Verdict", icon: <Gavel className="w-5 h-5" />, color: "text-slate-800", bg: "bg-slate-200", border: "border-slate-300" },
 ];
 
 export const PeerReviewPage: React.FC<PeerReviewPageProps> = ({ onBack }) => {
@@ -174,10 +171,10 @@ export const PeerReviewPage: React.FC<PeerReviewPageProps> = ({ onBack }) => {
               <p className="text-slate-500">Our specialized agents are analyzing your manuscript...</p>
            </div>
 
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-center">
               {AGENTS_UI.map((agent) => {
-                 const isActive = activeAgent === agent.id;
-                 const isDone = completedAgents.has(agent.id);
+                 const isActive = activeAgent === agent.name; // Fixed ID matching logic
+                 const isDone = completedAgents.has(agent.name);
                  
                  return (
                     <div 
