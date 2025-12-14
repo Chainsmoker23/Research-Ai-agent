@@ -435,9 +435,11 @@ const getSectionInstructions = (sectionName: string): string => {
             - Subsection 4.3: Ablation Studies (Analyze components).
             - Subsection 4.4: Qualitative Analysis (Visual examples discussion).
             
-            DATA GENERATION:
-            - Hallucinate PLAUSIBLE, CONSISTENT data. Use concrete numbers (e.g., "Our method achieved 84.5% accuracy vs 81.2% for Baseline").
-            - Discuss the *statistical significance* of the results.
+            DATA GENERATION RULES (STRICT):
+            - **NO VAGUE CLAIMS**: Never say "performance improved" or "it was faster".
+            - **SPECIFICITY**: Always write "performance improved by 12.4% (from 72.1% to 84.5%)".
+            - **STATISTICS**: Include standard deviations (e.g., 84.5% ± 0.3%) and p-values (p < 0.001) for main claims.
+            - **CONSISTENCY**: Ensure the numbers in the text match the synthetic tables you generate.
         `;
     }
 
@@ -448,6 +450,10 @@ const getSectionInstructions = (sectionName: string): string => {
             - Interpret the findings. Why did it work?
             - Discuss Limitations honestly (Subsection 5.2).
             - Theoretical implications.
+            
+            CONTENT RULES:
+            - **DATA DRIVEN**: When discussing improvements, repeat the key metric from the Results section to reinforce the claim.
+            - **COMPARATIVE**: Compare your specific numbers against the specific numbers of the baselines mentioned in Related Work.
         `;
     }
 

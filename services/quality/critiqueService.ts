@@ -17,6 +17,16 @@ export const critiqueAndRefineSection = async (
   const ai = getGeminiClient('EDITORIAL', 'Devil_Advocate');
   const modelId = "gemini-3-pro-preview";
 
+  const isQuantitativeSection = sectionName.toLowerCase().includes("result") || sectionName.toLowerCase().includes("discussion");
+
+  const specificCriteria = isQuantitativeSection 
+    ? `
+    5. **QUANTITATIVE RIGOR (CRITICAL)**: Are claims supported by specific numbers?
+       - Flag terms like "significant", "better", "faster", "robust" if they lack specific values (%, ms, score).
+       - Demand p-values or confidence intervals for "significant" claims.
+    `
+    : "";
+
   // Step 1: The Ruthless Critic
   const critiquePrompt = `
     ROLE: Ruthless Senior Peer Reviewer (The "Devil's Advocate").
@@ -33,6 +43,7 @@ export const critiqueAndRefineSection = async (
     2. Are there vague claims (e.g., "results were good") instead of specific ones?
     3. Is the math/logic consistent?
     4. Is the tone sufficiently academic?
+    ${specificCriteria}
 
     OUTPUT JSON:
     {
@@ -70,6 +81,14 @@ export const critiqueAndRefineSection = async (
         };
     }
 
+    const fixInstructions = isQuantitativeSection
+    ? `
+      - **QUANTIFY EVERYTHING**: If the critique mentions vague claims, YOU MUST INVENT PLAUSIBLE DATA to fix it.
+      - Example: Change "our model was faster" to "our model reduced latency by 45ms (15% improvement)".
+      - Use standard deviations (±) where appropriate.
+    `
+    : "";
+
     // Step 2: The Fixer (Self-Correction)
     const fixPrompt = `
       ROLE: Academic Editor.
@@ -86,6 +105,7 @@ export const critiqueAndRefineSection = async (
       - Make claims more concrete.
       - Maintain LaTeX formatting exactly.
       - Do NOT summarize. Rewrite for quality.
+      ${fixInstructions}
       
       OUTPUT: Full rewritten LaTeX content (string).
     `;

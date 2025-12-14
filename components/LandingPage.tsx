@@ -544,15 +544,194 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         </div>
       </section>
 
-      {/* FEATURE: REVIEWER AGENT HUD (Removed Reviewer #2 mention here as well) */}
+      {/* SPLIT SECTION: LATEX AUTOMATION */}
+      <section className="py-24 sm:py-32 bg-white border-y border-slate-100 relative overflow-hidden">
+         <div className="absolute inset-0 grid-bg opacity-30"></div>
+         <div className="max-w-7xl mx-auto px-4 relative z-10">
+            <div className="grid lg:grid-cols-2 gap-16 lg:gap-20 items-center">
+               
+               {/* Left Content */}
+               <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 text-xs font-bold mb-8">
+                     <Terminal className="w-4 h-4" /> LATEX_COMPILER_V2
+                  </div>
+                  <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-6 text-balance">
+                     Zero Syntax Errors. <br/>
+                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Guaranteed.</span>
+                  </h2>
+                  <p className="text-slate-600 text-base sm:text-lg mb-8 leading-relaxed text-balance">
+                     Forget missing brackets and broken BibTeX. Our engine generates perfectly valid LaTeX code, compiles it in the cloud, and delivers a pristine PDF.
+                  </p>
+                  
+                  <div className="space-y-4">
+                     {['Automatic Package Management', 'BibTeX Formatting & Citation Keys', 'Float Placement Optimization'].map((item, i) => (
+                        <div key={i} className="flex items-center gap-4 group">
+                           <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center border border-green-100 group-hover:border-green-300 transition-colors">
+                              <CheckCircle2 className="w-4 h-4 text-green-600" />
+                           </div>
+                           <span className="text-slate-700 font-medium">{item}</span>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+
+               {/* Right Visual: Code vs PDF */}
+               <div className="relative group perspective-1000 hidden sm:block">
+                  <div className="absolute -inset-2 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+                  <div className="relative bg-slate-900 rounded-xl border border-slate-800 shadow-2xl overflow-hidden h-[400px] flex">
+                     
+                     {/* Code Side (Dark Mode for Code) */}
+                     <div className="w-1/2 p-6 border-r border-slate-700 font-mono text-[10px] text-slate-400 leading-relaxed overflow-hidden bg-[#0d1117] relative">
+                        {/* Line Numbers */}
+                        <div className="absolute left-2 top-6 text-slate-700 select-none text-right w-4 space-y-0.5">
+                           <div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div><div>7</div><div>8</div><div>9</div><div>10</div>
+                        </div>
+                        <div className="pl-6">
+                            <div className="text-slate-500 mb-2 font-bold opacity-50">// main.tex</div>
+                            <p><span className="text-purple-400">\documentclass</span><span className="text-yellow-200">&#123;article&#125;</span></p>
+                            <p><span className="text-purple-400">\usepackage</span><span className="text-yellow-200">&#123;amsmath&#125;</span></p>
+                            <p><span className="text-purple-400">\title</span><span className="text-yellow-200">&#123;Generative Science&#125;</span></p>
+                            <p className="opacity-50 my-1">...</p>
+                            <p><span className="text-purple-400">\begin</span><span className="text-yellow-200">&#123;document&#125;</span></p>
+                            <p><span className="text-purple-400">\section</span><span className="text-yellow-200">&#123;Introduction&#125;</span></p>
+                            <p><span className="text-blue-300">Recent advances in large language models...</span></p>
+                            <p><span className="text-purple-400">\end</span><span className="text-yellow-200">&#123;document&#125;</span></p>
+                        </div>
+                     </div>
+
+                     {/* PDF Side (Light Mode for PDF) */}
+                     <div className="w-1/2 bg-white p-6 relative">
+                        <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[10px] px-2 py-1 font-bold rounded-bl">PDF PREVIEW</div>
+                        <div className="space-y-4 opacity-80 scale-90 origin-top">
+                           <div className="h-4 w-3/4 bg-slate-800 rounded mx-auto mb-6"></div>
+                           <div className="h-2 w-full bg-slate-200 rounded"></div>
+                           <div className="h-2 w-full bg-slate-200 rounded"></div>
+                           <div className="h-2 w-5/6 bg-slate-200 rounded"></div>
+                           <div className="grid grid-cols-2 gap-4 mt-6">
+                              <div className="h-20 bg-slate-100 rounded border border-slate-200"></div>
+                              <div className="space-y-2">
+                                 <div className="h-2 w-full bg-slate-200 rounded"></div>
+                                 <div className="h-2 w-full bg-slate-200 rounded"></div>
+                              </div>
+                           </div>
+                        </div>
+                        
+                        {/* "Processing" Overlay */}
+                        <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                           <div className="bg-slate-900 text-white px-4 py-2 rounded-full shadow-xl flex items-center gap-2 text-xs font-bold animate-fade-in-up">
+                              <CheckCircle2 className="w-4 h-4 text-green-400" /> Compiled Successfully
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+                
+               {/* Mobile fallback for Code vs PDF */}
+               <div className="block sm:hidden relative bg-slate-900 rounded-xl p-4 shadow-xl">
+                    <div className="flex items-center justify-between mb-4 border-b border-slate-700 pb-2">
+                        <span className="text-indigo-400 text-xs font-mono">// Source</span>
+                        <ArrowRight className="text-slate-500 w-4 h-4" />
+                        <span className="text-white text-xs font-bold">PDF</span>
+                    </div>
+                    <div className="space-y-2">
+                        <div className="h-2 w-3/4 bg-slate-700 rounded"></div>
+                        <div className="h-2 w-full bg-slate-700 rounded"></div>
+                        <div className="h-20 bg-white/10 rounded border border-slate-700 mt-2 flex items-center justify-center">
+                            <CheckCircle2 className="w-8 h-8 text-green-500" />
+                        </div>
+                    </div>
+               </div>
+
+            </div>
+         </div>
+      </section>
+
+      {/* FEATURE: NOVELTY RADAR */}
+      <section className="py-24 sm:py-32 relative overflow-hidden bg-slate-50">
+         <div className="max-w-7xl mx-auto px-4 relative z-10">
+            <div className="grid lg:grid-cols-2 gap-16 lg:gap-20 items-center">
+               
+               {/* Radar Visual */}
+               <div className="order-2 lg:order-1 relative flex justify-center py-8 lg:py-0">
+                  {/* Container: Responsive Size & Crystal Theme */}
+                  <div className="relative w-[320px] h-[320px] sm:w-[480px] sm:h-[480px] rounded-full flex items-center justify-center bg-gradient-to-br from-white via-indigo-50/50 to-purple-50/50 backdrop-blur-2xl shadow-[0_20px_50px_-12px_rgba(99,102,241,0.25)] border border-white/80 shrink-0 overflow-hidden group ring-1 ring-indigo-50/50">
+                     
+                     {/* Dynamic Grid Background - Adjusted for Light Mode */}
+                     <div className="absolute inset-0 opacity-40 bg-[linear-gradient(rgba(99,102,241,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.2)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black_60%,transparent_100%)]"></div>
+                     
+                     {/* Rings - Light Crystal Style */}
+                     <div className="absolute inset-[15%] border border-indigo-200/60 rounded-full shadow-[0_0_20px_rgba(99,102,241,0.1)]"></div>
+                     <div className="absolute inset-[30%] border border-indigo-200/50 rounded-full"></div>
+                     <div className="absolute inset-[45%] border border-indigo-100/40 rounded-full"></div>
+                     
+                     {/* Scanning Sweep - Conic Gradient */}
+                     <div className="absolute inset-0 rounded-full animate-scan-radar z-10">
+                        <div className="w-full h-full bg-[conic-gradient(transparent_270deg,rgba(99,102,241,0.2)_360deg)] rounded-full blur-sm"></div>
+                     </div>
+                     <div className="absolute inset-0 rounded-full animate-scan-radar z-10">
+                        <div className="absolute top-0 left-1/2 w-px h-1/2 bg-gradient-to-b from-indigo-500 to-transparent shadow-[0_0_15px_#818cf8]"></div>
+                     </div>
+
+                     {/* Center Mascot - Glass Sphere */}
+                     <div className="relative z-20 bg-white/40 backdrop-blur-md p-6 rounded-full border border-white shadow-xl ring-1 ring-white/50">
+                        <LemurMascot className="w-24 h-24 sm:w-32 sm:h-32 drop-shadow-xl" variant="telescope" />
+                     </div>
+
+                     {/* Blips */}
+                     <div className="absolute top-[28%] right-[28%] w-3 h-3 bg-rose-500 rounded-full animate-ping z-20 shadow-[0_0_10px_#f43f5e]"></div>
+                     <div className="absolute top-[28%] right-[28%] w-3 h-3 bg-rose-500 rounded-full z-20 border border-white shadow-md"></div>
+                     
+                     <div className="absolute bottom-[32%] left-[22%] w-3 h-3 bg-emerald-500 rounded-full animate-ping animation-delay-2000 z-20 shadow-[0_0_10px_#10b981]"></div>
+                     <div className="absolute bottom-[32%] left-[22%] w-3 h-3 bg-emerald-500 rounded-full z-20 border border-white shadow-md"></div>
+
+                     {/* Score HUD - Light Glassmorphism */}
+                     <div className="absolute bottom-10 right-10 sm:bottom-16 sm:right-16 z-30">
+                        <div className="backdrop-blur-xl bg-white/70 border border-white/60 p-4 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col items-center animate-float ring-1 ring-white">
+                            <span className="text-[10px] text-indigo-500 font-bold uppercase tracking-widest mb-1">Novelty Score</span>
+                            <div className="text-4xl sm:text-5xl font-mono font-bold text-slate-800 drop-shadow-sm">94%</div>
+                            <div className="w-full h-1.5 bg-slate-200/50 rounded-full mt-2 overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 w-[94%] shadow-[0_0_10px_rgba(99,102,241,0.5)]"></div>
+                            </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+               {/* Right Content */}
+               <div className="order-1 lg:order-2">
+                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-600 text-xs font-bold mb-6 sm:mb-8">
+                     <Radar className="w-4 h-4" /> GAP_ANALYSIS_ENGINE
+                  </div>
+                  <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-6 text-balance">
+                     Novelty Verification. <br/>
+                     <span className="text-slate-400">Stop Reinventing.</span>
+                  </h2>
+                  <p className="text-slate-600 text-base sm:text-lg mb-8 leading-relaxed text-balance">
+                     73% of papers are rejected for lack of novelty. Our engine scans 200M+ papers in real-time to ensure your research gap is genuine before you write a single word.
+                  </p>
+                  <ul className="space-y-4">
+                     {["Semantic Collision Detection", "Saturation Heatmaps", "White-Space Identification"].map((item, i) => (
+                        <li key={i} className="flex items-center gap-3 text-slate-700 font-medium text-sm">
+                           <div className="w-2 h-2 bg-indigo-500 rounded-full shadow-sm"></div>
+                           {item}
+                        </li>
+                     ))}
+                  </ul>
+               </div>
+
+            </div>
+         </div>
+      </section>
+
+      {/* FEATURE: REVIEWER AGENT HUD */}
       <section className="py-24 sm:py-32 bg-white border-y border-slate-100">
         <div className="max-w-4xl mx-auto px-4 text-center">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-600 text-xs font-bold mb-8">
                 <ShieldAlert className="w-4 h-4" /> ADVERSARIAL_REVIEW
             </div>
-            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-6">Rigorous Peer Review</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-6">Meet "Reviewer #2"</h2>
             <p className="text-slate-600 text-base sm:text-lg mb-12 text-balance max-w-2xl mx-auto">
-                We simulate a full review board including methodology experts and citation police to find flaws before real reviewers do.
+                We built an AI specifically designed to reject your paper. It finds logical fallacies and weak baselines so the real reviewers don't.
             </p>
             
             <div className="bg-slate-900 rounded-2xl border border-slate-800 p-1 shadow-2xl overflow-hidden relative group text-left mx-auto">
