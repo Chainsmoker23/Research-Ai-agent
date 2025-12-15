@@ -12,6 +12,9 @@ export const SPRINGER_TEMPLATE = `
 \\usepackage{hyperref}
 \\usepackage{mathptmx} 
 \\usepackage{url}
+\\usepackage{booktabs}
+\\usepackage{rotating}
+\\usepackage{array}
 
 \\title{\\textbf{{{TITLE}}}}
 \\author[1]{{{AUTHOR_FNM}} {{AUTHOR_SUR}}}

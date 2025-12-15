@@ -101,7 +101,7 @@ export const LatexAutomation: React.FC = () => {
                               <div className="w-3 h-3 rounded-full bg-slate-300/80"></div>
                            </div>
                            <div className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                              <Code2 className="w-3 h-3" /> Source.tex
+                              <Code2 className="w-3 h-3" /> p2p_query.tex
                            </div>
                         </div>
 
@@ -126,7 +126,7 @@ export const LatexAutomation: React.FC = () => {
                               <div className={activeLine === 1 ? "text-slate-900 font-bold transition-colors" : ""}>
                                  <span className="text-purple-600 font-bold">\usepackage</span>
                                  <span className="text-slate-400">&#123;</span>
-                                 <span className="text-emerald-600">neural-nets</span>
+                                 <span className="text-emerald-600">asm-verification</span>
                                  <span className="text-slate-400">&#125;</span>
                               </div>
                               <div className={activeLine === 2 ? "text-slate-900 font-bold transition-colors" : ""}>
@@ -142,7 +142,7 @@ export const LatexAutomation: React.FC = () => {
                                  <span className="text-slate-400">&#125;</span>
                               </div>
                               <div className={activeLine === 4 ? "text-slate-900 font-bold transition-colors" : ""}>
-                                 We propose a <span className="text-indigo-600 font-bold">\textbf</span>&#123;novel&#125; arch...
+                                 We verify <span className="text-indigo-600 font-bold">\textbf</span>&#123;safety&#125; via...
                               </div>
                               <div className={activeLine === 5 ? "text-slate-900 font-bold transition-colors" : ""}>
                                  <span className="text-purple-600 font-bold">\begin</span>
@@ -151,7 +151,7 @@ export const LatexAutomation: React.FC = () => {
                                  <span className="text-slate-400">&#125;</span>
                               </div>
                               <div className={activeLine === 6 ? "text-slate-900 font-bold transition-colors" : ""}>
-                                 <span className="text-slate-500 pl-4 font-serif italic">L = \sum_{`{i=1}^{N}`} (y_i - \hat{`{y}`}_i)^2</span>
+                                 <span className="text-slate-500 pl-4 font-serif italic">P_{`safe`} \equiv \forall q \in Q...</span>
                               </div>
                               <div className={activeLine === 7 ? "text-slate-900 font-bold transition-colors" : ""}>
                                  <span className="text-purple-600 font-bold">\end</span>
@@ -186,10 +186,10 @@ export const LatexAutomation: React.FC = () => {
                            {/* Paper Title */}
                            <div className="text-center pb-2 border-b border-slate-100 mb-2">
                                <h4 className="text-[10px] font-bold leading-tight mb-1 text-slate-900">
-                                   Autonomous Generation of Scientific Literature
+                                   Formal Specification of Decentralized Query Processing in P2P Databases
                                </h4>
                                <div className="text-[7px] italic text-slate-500">
-                                   ScholarAgent AI et al., Department of Automated Research
+                                   Divesh Sarkar, Sikkim Professional University
                                </div>
                            </div>
 
@@ -197,7 +197,7 @@ export const LatexAutomation: React.FC = () => {
                            <div className="text-justify mb-2">
                                 <span className="text-[7px] font-bold uppercase mr-1">Abstract.</span>
                                 <span className="text-[7px] leading-[1.4] text-slate-600">
-                                    This paper introduces a multi-agent framework for automated research. By leveraging large language models, we achieve zero-shot synthesis of high-fidelity LaTeX manuscripts. Our method reduces drafting time by 94% while maintaining academic rigor.
+                                    The integration of distributed ledger technology (DLT) into peer-to-peer (P2P) database systems offers a robust mechanism for maintaining immutable semantic registries. We employ Abstract State Machines (ASM) to define algebraic semantics.
                                 </span>
                            </div>
 
@@ -206,19 +206,19 @@ export const LatexAutomation: React.FC = () => {
                            
                            {/* Paragraph */}
                            <p className="text-[7px] leading-[1.4] text-justify text-slate-600">
-                               The automation of scientific discovery has long been a goal of artificial intelligence. We propose a novel architecture that combines retrieval-augmented generation with formal verification.
+                               The trajectory of data management systems has increasingly favored decentralization. This paper proposes a formal specification framework to analyze interactions between P2P overlay networks and ledgers.
                            </p>
 
                            {/* Equation Box */}
                            <div className="my-1.5 p-2 border border-slate-100 rounded-lg bg-slate-50/50 flex items-center justify-center">
-                              <div className="text-slate-800 font-serif italic text-xs">
-                                 L = Σ (y - ŷ)² + λ||w||²
+                              <div className="text-slate-800 font-serif italic text-[7px]">
+                                 P_safe ≡ ∀q ∈ Q, ρ(q) → n_target ⇒ req_q ⊆ R_now(n_target)
                               </div>
                            </div>
 
                            {/* Paragraph 2 */}
                            <p className="text-[7px] leading-[1.4] text-justify text-slate-600">
-                               We evaluate our system on a dataset of 5,000 generated papers. Results indicate a significant improvement in citation accuracy and structural coherence compared to baseline models.
+                               Specifically, this study focuses on proving safety properties, ensuring data consistency between the ledger and local peer states, and liveness properties.
                            </p>
                         </div>
 
@@ -237,10 +237,10 @@ export const LatexAutomation: React.FC = () => {
 
                   {/* Orbiting Badges */}
                   <div className="absolute -right-2 top-20 bg-white/90 backdrop-blur-md border border-white p-3 rounded-2xl shadow-xl flex items-center gap-3 animate-float-y z-30 ring-1 ring-slate-100/50">
-                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-md">TeX</div>
+                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-md">ASM</div>
                      <div className="text-xs">
-                        <div className="text-slate-400 font-bold uppercase tracking-wider text-[8px]">Class</div>
-                        <div className="font-bold text-slate-800">IEEEtran</div>
+                        <div className="text-slate-400 font-bold uppercase tracking-wider text-[8px]">Formalism</div>
+                        <div className="font-bold text-slate-800">Verified</div>
                      </div>
                   </div>
 
@@ -249,8 +249,8 @@ export const LatexAutomation: React.FC = () => {
                         <Layers className="w-4 h-4 text-white" />
                      </div>
                      <div className="text-xs">
-                        <div className="text-slate-400 font-bold uppercase tracking-wider text-[8px]">References</div>
-                        <div className="font-bold text-slate-800">Formatted</div>
+                        <div className="text-slate-400 font-bold uppercase tracking-wider text-[8px]">Consistency</div>
+                        <div className="font-bold text-slate-800">Eventual</div>
                      </div>
                   </div>
 

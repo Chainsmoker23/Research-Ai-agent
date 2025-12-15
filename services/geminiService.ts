@@ -500,16 +500,20 @@ export const generateDraftSection = async (
     GENERAL WRITING RULES:
     1. **ACADEMIC DENSITY**: Avoid fluff. Write dense, high-entropy academic prose. Use specific terminology.
     2. **SUBSECTIONS**: You MUST use \\subsection{} and \\subsubsection{} to structure the text logically. Do not output a wall of text.
-    3. **VISUAL PLACEHOLDERS**: 
-       - Do NOT output \\begin{figure}... blocks that try to render images (this causes errors).
-       - Instead, insert explicit comments for where figures/tables should go, describing them in detail.
-       - FORMAT: 
+    3. **VISUAL PLACEHOLDERS - FIGURES**: 
+       - **DO NOT** output \\begin{figure}... blocks.
+       - Instead, insert explicit comments:
          % ---------------------------------------------------------
-         % [INSERT TABLE 1 HERE]: Comparison of accuracy metrics...
-         % Columns: Method, Precision, Recall, F1-Score
+         % [INSERT FIGURE 2 HERE]: Architecture Diagram showing...
          % ---------------------------------------------------------
-    4. **MATH**: Use LaTeX environments \\begin{equation} ... \\end{equation} for all formulas. Define all variables.
-    5. **LENGTH**: adhere strictly to the length requirements. 
+    4. **TABLES (REAL DATA)**:
+       - You MUST generate valid LaTeX tables (\\begin{table}...) containing plausible data if relevant (e.g. Results).
+       - Do not worry about column width; our formatter handles that.
+       - Focus on the CONTENT of the table (header, rows, values).
+    5. **MATH**: Use LaTeX environments \\begin{equation} ... \\end{equation} for all formulas. Define all variables.
+    6. **LENGTH**: adhere strictly to the length requirements. 
+    7. **NO SECTION HEADERS**: Do NOT output \\section{...} for the main title (e.g. "Introduction"). The system adds this automatically. Start writing the paragraph content immediately (or use \\subsection for parts).
+    8. **NO CHATTY INTROS**: Do NOT write "Here is the section..." or "Certainly!". Output ONLY the LaTeX content body.
     
     OUTPUT FORMAT:
     - ONLY valid LaTeX code for the section content. 

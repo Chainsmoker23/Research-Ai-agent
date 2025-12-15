@@ -10,6 +10,9 @@ export const IEEE_TEMPLATE = `
 \\usepackage[utf8]{inputenc}
 \\usepackage[T1]{fontenc}
 \\usepackage{url}
+\\usepackage{booktabs} % For professional tables
+\\usepackage{rotating} % For sidewaystable
+\\usepackage{array}
 
 \\def\\BibTeX{{\\rm B\\kern-.05em{\\sc i\\kern-.025em b}\\kern-.08em
     T\\kern-.1667em\\lower.7ex\\hbox{E}\\kern-.125emX}}

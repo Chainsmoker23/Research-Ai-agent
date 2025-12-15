@@ -7,10 +7,12 @@ import * as EditorialService from '../services/editorialService';
 import * as ReviewService from '../services/reviewService';
 import * as CritiqueService from '../services/quality/critiqueService';
 import * as SynthesisService from '../services/quality/synthesisService';
+import * as TableService from '../services/quality/tableService';
 
 import { AuthorMetadataForm } from './AuthorMetadataForm';
 import { LatexPreview } from './LatexPreview';
 import { ReviewReportView } from './ReviewReportView';
+import { CritiqueVisualizer } from './CritiqueVisualizer';
 import { TEMPLATES } from '../constants';
 import { CheckCircle2, Circle, Loader2, Play, RefreshCw, AlertTriangle, BookOpen, Database, ScanSearch, History, TrendingUp, Microscope, SearchX, Gavel, FileCode, CheckCheck, UserCheck, ShieldAlert, X, BrainCircuit, Terminal, Scale } from 'lucide-react';
 
@@ -28,6 +30,11 @@ type DraftSection = {
   content: string;
   status: 'pending' | 'drafting' | 'critiquing' | 'completed' | 'error';
   errorMsg?: string;
+  critiqueData?: {
+      original: string;
+      improved: string;
+      issues: string[];
+  };
 };
 
 export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
@@ -219,26 +226,27 @@ export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
         (chunk) => setStreamingContent(chunk)
       );
 
-      // 3. Iterative Self-Critique
+      // 3. Iterative Self-Critique & Table Formatting
       setCurrentAction("Reviewer Agent: Critiquing and refining...");
-      setSections(prev => prev.map((s, i) => i === index ? { ...s, status: 'critiquing', content } : s));
       
       const critiqueResult = await CritiqueService.critiqueAndRefineSection(section.name, content, topic.title);
+      const improvedContent = critiqueResult.improvedContent || content;
       
-      // 4. Success - Move to next
-      const finalContent = critiqueResult.improvedContent || content;
-      
+      // Post-Process: Smart Table Formatting
+      const formattedContent = TableService.processLatexTables(improvedContent);
+
+      // Update section state to trigger Visualizer
       setSections(prev => prev.map((s, i) => i === index ? { 
           ...s, 
-          content: finalContent, 
-          status: 'completed' 
+          status: 'critiquing',
+          critiqueData: {
+              original: content,
+              improved: formattedContent, // Use the table-formatted version
+              issues: critiqueResult.issuesFound
+          }
       } : s));
-
-      setCurrentAction("Section complete.");
       
-      setTimeout(() => {
-          generateNextSection(index + 1, currentRefs);
-      }, 500);
+      // The visualizer component will handle the transition to 'completed' via onComplete callback
 
     } catch (e: any) {
       console.error(`Section ${section.name} failed:`, e);
@@ -249,6 +257,22 @@ export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
           errorMsg: e.message || "Generation failed." 
       } : s));
     }
+  };
+
+  const handleVisualizerComplete = () => {
+      // Move current section to completed
+      setSections(prev => prev.map((s, i) => i === currentSectionIdx ? { 
+          ...s, 
+          content: s.critiqueData?.improved || s.content, // Finalize content
+          status: 'completed' 
+      } : s));
+
+      setCurrentAction("Section complete.");
+      
+      // Proceed to next section
+      setTimeout(() => {
+          generateNextSection(currentSectionIdx + 1, references);
+      }, 500);
   };
 
   const handleRetrySection = (index: number) => {
@@ -292,6 +316,9 @@ ${targetTemplate.classFile}
 \\usepackage{graphicx}
 \\usepackage{textcomp}
 \\usepackage{xcolor}
+\\usepackage{rotating} % For sidewaystable
+\\usepackage{booktabs} % For professional tables
+\\usepackage{array}
 
 \\begin{document}
 
@@ -600,9 +627,16 @@ ${draftKeywords.join(", ")}
                </h3>
             </div>
             
-            <div className="flex-grow p-6 overflow-y-auto bg-slate-900 text-slate-300 font-mono text-sm">
-                {sections[currentSectionIdx].status === 'error' ? (
-                    <div className="flex flex-col items-center justify-center h-full text-red-400 space-y-4">
+            <div className="flex-grow relative bg-slate-900">
+                {sections[currentSectionIdx].status === 'critiquing' && sections[currentSectionIdx].critiqueData ? (
+                    <CritiqueVisualizer 
+                        originalText={sections[currentSectionIdx].critiqueData!.original}
+                        improvedText={sections[currentSectionIdx].critiqueData!.improved}
+                        issues={sections[currentSectionIdx].critiqueData!.issues}
+                        onComplete={handleVisualizerComplete}
+                    />
+                ) : sections[currentSectionIdx].status === 'error' ? (
+                    <div className="flex flex-col items-center justify-center h-full text-red-400 space-y-4 p-6">
                         <AlertTriangle className="w-12 h-12" />
                         <div className="text-center">
                             <h4 className="text-lg font-bold">Generation Failed</h4>
@@ -616,15 +650,17 @@ ${draftKeywords.join(", ")}
                         </button>
                     </div>
                 ) : (
-                    <pre className="whitespace-pre-wrap">
-                    {sections[currentSectionIdx].status === 'drafting' 
-                        ? streamingContent 
-                        : sections[currentSectionIdx].content || "Waiting for agent..."}
-                    </pre>
+                    <div className="p-6 overflow-y-auto h-full text-slate-300 font-mono text-sm">
+                        <pre className="whitespace-pre-wrap">
+                        {sections[currentSectionIdx].status === 'drafting' 
+                            ? streamingContent 
+                            : sections[currentSectionIdx].content || "Waiting for agent..."}
+                        </pre>
+                    </div>
                 )}
             </div>
 
-            <div className="p-4 border-t border-slate-200 bg-white flex justify-end gap-3">
+            <div className="p-4 border-t border-slate-200 bg-white flex justify-end gap-3 relative z-10">
                {sections[currentSectionIdx].status === 'completed' ? (
                   <>
                      <button onClick={() => generateNextSection(currentSectionIdx, references)} className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 flex items-center gap-2">
