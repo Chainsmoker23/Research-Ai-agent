@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowRight, Play, BarChart3, SearchCheck, Terminal, Network, Binary } from 'lucide-react';
+import { Play, BarChart3, SearchCheck, Terminal, Network, Binary } from 'lucide-react';
 import { LemurMascot } from '../LemurMascot';
+import { LaunchButton } from '../LaunchButton';
 
 const ROTATING_DOMAINS = [
   "Rigorous Science",
@@ -106,15 +107,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStart }) => {
               </p>
               
               <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
-                <button 
-                  onClick={onStart}
-                  className="group relative inline-flex h-14 items-center justify-center overflow-hidden rounded-full bg-slate-900 px-8 font-bold text-white transition-all duration-300 hover:bg-slate-800 hover:shadow-2xl hover:scale-105 w-full sm:w-auto shadow-indigo-200 ring-4 ring-transparent hover:ring-indigo-100"
-                >
-                  <span className="mr-2 text-lg">Initialize Swarm</span>
-                  <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                </button>
+                <LaunchButton onClick={onStart} />
                 
-                <button className="flex items-center gap-3 px-8 py-4 rounded-full bg-white border border-slate-200 hover:border-indigo-300 text-slate-700 hover:text-indigo-600 transition-colors w-full sm:w-auto justify-center shadow-sm hover:shadow-md">
+                <button className="flex items-center gap-3 px-8 py-4 rounded-full bg-white border border-slate-200 hover:border-indigo-300 text-slate-700 hover:text-indigo-600 transition-colors w-full sm:w-auto justify-center shadow-sm hover:shadow-md h-14">
                    <Play className="w-5 h-5 fill-current" />
                    <span className="font-medium text-sm">Watch Demo</span>
                 </button>

@@ -51,4 +51,60 @@ export const getGeminiClient = (purpose: AgentPurpose, distinctId?: string) => {
     return new GoogleGenAI({ apiKey: selectedKey });
 };
 
+/**
+ * NEW: Explicitly select a client by index.
+ * Used for rotation logic when hitting quota limits.
+ */
+export const getGeminiClientByIndex = (index: number) => {
+    // If no keys, this fallback ensures we don't crash, though auth will fail.
+    const validIndex = Math.abs(index) % (KEYS.length || 1);
+    const selectedKey = KEYS[validIndex];
+    return new GoogleGenAI({ apiKey: selectedKey });
+};
+
 export const getKeyCount = () => KEYS.length;
+
+// --- ROTATION UTILITIES ---
+
+const isQuotaError = (e: any) => {
+  return e.status === 429 || 
+         (e.message && (
+            e.message.includes('429') || 
+            e.message.includes('Quota') || 
+            e.message.includes('Resource has been exhausted')
+         ));
+};
+
+/**
+ * Executes a Gemini operation with automatic key rotation on Quota errors.
+ * This ensures that if Key 1 is exhausted, Key 2 takes over immediately.
+ */
+export const executeGeminiCall = async <T>(
+  operation: (ai: GoogleGenAI) => Promise<T>,
+  seed: string = "default"
+): Promise<T> => {
+  const totalKeys = KEYS.length;
+  if (totalKeys === 0) throw new Error("No API Keys configured in .env");
+  
+  // Start with a deterministic key based on seed (e.g. section name)
+  let keyIndex = Math.abs(seed.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0));
+  
+  // We allow retrying through the entire pool plus a buffer for transient errors
+  const maxAttempts = Math.max(totalKeys, 3);
+
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const ai = getGeminiClientByIndex(keyIndex);
+      return await operation(ai);
+    } catch (error: any) {
+      if (isQuotaError(error)) {
+        console.warn(`ScholarAgent: Quota hit on Key Index ${keyIndex % totalKeys}. Rotating to next key...`);
+        keyIndex++; // Move to next key in sequence
+        await new Promise(r => setTimeout(r, 1000 + (i * 500))); // Exponential backoff
+        continue;
+      }
+      throw error; // Rethrow non-quota errors (e.g. safety, bad request)
+    }
+  }
+  throw new Error("ScholarAgent: All API keys exhausted. Please add more keys or try again later.");
+};

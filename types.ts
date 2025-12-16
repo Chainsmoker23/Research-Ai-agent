@@ -74,6 +74,26 @@ export interface AuthorMetadata {
   funding?: string;
 }
 
+// --- WRITING STYLE ---
+export type WritingStyle = 'Standard' | 'Dense_Technical' | 'Narrative_Impact';
+
+export interface DraftSection {
+  id: string;
+  name: string;
+  content: string;
+  status: 'pending' | 'drafting' | 'critiquing' | 'completed' | 'error';
+  errorMsg?: string;
+  critiqueData?: {
+      original: string;
+      improved: string;
+      issues: string[];
+  };
+  // NEW: Dynamic Roadmap Fields
+  purpose?: string; 
+  customInstructions?: string; // Specific instructions from the Architect
+  estimatedWordCount?: number;
+}
+
 export interface ResearchState {
   domain: string;
   selectedTopic: ResearchTopic | null;
@@ -153,4 +173,27 @@ export interface ConsistencyCheckResult {
   undefinedVariables: string[];
   inconsistentNotation: string[];
   score: number;
+}
+
+// --- NEW: ADVANCED AGENT TYPES ---
+
+export interface CoherenceCheckResult {
+  aligned: boolean;
+  contradictions: string[];
+  revisedAbstract?: string; // If rewrites were needed
+  score: number;
+}
+
+export interface NarrativeArc {
+  eraName: string; // e.g. "The Early Heuristic Era"
+  papers: string[]; // Citation keys
+  theme: string;
+}
+
+// --- NEW: ROADMAP TYPES ---
+export interface SectionBlueprint {
+  title: string;
+  purpose: string;
+  draftingInstructions: string;
+  wordCount: number;
 }

@@ -1,7 +1,7 @@
 
 import { Type } from "@google/genai";
 import { CritiqueResult } from "../../types";
-import { getGeminiClient } from "../geminiClient";
+import { executeGeminiCall } from "../geminiClient";
 
 /**
  * The "Devil's Advocate" Loop.
@@ -14,123 +14,127 @@ export const critiqueAndRefineSection = async (
   draftContent: string,
   topicContext: string
 ): Promise<CritiqueResult> => {
-  const ai = getGeminiClient('EDITORIAL', 'Devil_Advocate');
-  const modelId = "gemini-3-pro-preview";
+  
+  return executeGeminiCall(async (ai) => {
+      const modelId = "gemini-3-pro-preview";
 
-  const isQuantitativeSection = sectionName.toLowerCase().includes("result") || sectionName.toLowerCase().includes("discussion");
+      const isQuantitativeSection = sectionName.toLowerCase().includes("result") || sectionName.toLowerCase().includes("discussion");
 
-  const specificCriteria = isQuantitativeSection 
-    ? `
-    5. **QUANTITATIVE RIGOR (CRITICAL)**: Are claims supported by specific numbers?
-       - Flag terms like "significant", "better", "faster", "robust" if they lack specific values (%, ms, score).
-       - Demand p-values or confidence intervals for "significant" claims.
-    `
-    : "";
+      const specificCriteria = isQuantitativeSection 
+        ? `
+        5. **QUANTITATIVE RIGOR (CRITICAL)**: Are claims supported by specific numbers?
+           - Flag terms like "significant", "better", "faster", "robust" if they lack specific values (%, ms, score).
+           - Demand p-values or confidence intervals for "significant" claims.
+        `
+        : "";
 
-  // Step 1: The Ruthless Critic
-  const critiquePrompt = `
-    ROLE: Ruthless Senior Peer Reviewer (The "Devil's Advocate").
-    TASK: Critique the following section of a research paper.
-    
-    SECTION: ${sectionName}
-    CONTEXT: ${topicContext}
-    
-    DRAFT CONTENT:
-    ${draftContent}
+      // Step 1: The Ruthless Critic
+      const critiquePrompt = `
+        ROLE: Ruthless Senior Peer Reviewer (The "Devil's Advocate").
+        TASK: Critique the following section of a research paper.
+        
+        SECTION: ${sectionName}
+        CONTEXT: ${topicContext}
+        
+        DRAFT CONTENT:
+        ${draftContent}
 
-    CRITERIA:
-    1. Is the argumentation logical and rigorous?
-    2. Are there vague claims (e.g., "results were good") instead of specific ones?
-    3. Is the math/logic consistent?
-    4. Is the tone sufficiently academic?
-    ${specificCriteria}
+        CRITERIA:
+        1. Is the argumentation logical and rigorous?
+        2. Are there vague claims (e.g., "results were good") instead of specific ones?
+        3. Is the math/logic consistent?
+        4. Is the tone sufficiently academic?
+        ${specificCriteria}
 
-    OUTPUT JSON:
-    {
-      "issues": ["List of specific specific flaws"],
-      "score": 1-10
-    }
-  `;
-
-  try {
-    const critiqueResponse = await ai.models.generateContent({
-        model: modelId,
-        contents: critiquePrompt,
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                    issues: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    score: { type: Type.INTEGER }
-                },
-                required: ["issues", "score"]
-            }
+        OUTPUT JSON:
+        {
+          "issues": ["List of specific specific flaws"],
+          "score": 1-10
         }
-    });
+      `;
 
-    const critique = JSON.parse(critiqueResponse.text || "{}");
+      try {
+        const critiqueResponse = await ai.models.generateContent({
+            model: modelId,
+            contents: critiquePrompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        issues: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        score: { type: Type.INTEGER }
+                    },
+                    required: ["issues", "score"]
+                }
+            }
+        });
 
-    // If score is high enough, return early
-    if (critique.score >= 8) {
+        const critique = JSON.parse(critiqueResponse.text || "{}");
+
+        // If score is high enough, return early
+        if (critique.score >= 8) {
+            return {
+                issuesFound: [],
+                critiqueScore: critique.score,
+                isAcceptable: true,
+                improvedContent: draftContent
+            };
+        }
+
+        const fixInstructions = isQuantitativeSection
+        ? `
+          - **QUANTIFY EVERYTHING**: If the critique mentions vague claims, YOU MUST INVENT PLAUSIBLE DATA to fix it.
+          - Example: Change "our model was faster" to "our model reduced latency by 45ms (15% improvement)".
+          - Use standard deviations (±) where appropriate.
+        `
+        : "";
+
+        // Step 2: The Fixer (Self-Correction)
+        // Note: Ideally we'd use a separate rotation call if this fails, but keeping it in one transaction for now to maintain context
+        const fixPrompt = `
+          ROLE: Academic Editor.
+          TASK: Rewrite the draft section to address the specific critiques found by the reviewer.
+          
+          ORIGINAL DRAFT:
+          ${draftContent}
+          
+          CRITIQUES TO FIX:
+          ${critique.issues.join("\n")}
+          
+          INSTRUCTIONS:
+          - Improve the academic tone.
+          - Make claims more concrete.
+          - Maintain LaTeX formatting exactly.
+          - Do NOT summarize. Rewrite for quality.
+          ${fixInstructions}
+          
+          OUTPUT: Full rewritten LaTeX content (string).
+        `;
+
+        const fixResponse = await ai.models.generateContent({
+            model: modelId,
+            contents: fixPrompt
+        });
+
+        const improvedContent = fixResponse.text || draftContent;
+
         return {
-            issuesFound: [],
+            issuesFound: critique.issues,
             critiqueScore: critique.score,
+            isAcceptable: true,
+            improvedContent: improvedContent
+        };
+
+      } catch (error) {
+        console.error("Critique loop failed:", error);
+        // Fail softly so the main draft remains
+        return {
+            issuesFound: ["Critique system error"],
+            critiqueScore: 5,
             isAcceptable: true,
             improvedContent: draftContent
         };
-    }
-
-    const fixInstructions = isQuantitativeSection
-    ? `
-      - **QUANTIFY EVERYTHING**: If the critique mentions vague claims, YOU MUST INVENT PLAUSIBLE DATA to fix it.
-      - Example: Change "our model was faster" to "our model reduced latency by 45ms (15% improvement)".
-      - Use standard deviations (±) where appropriate.
-    `
-    : "";
-
-    // Step 2: The Fixer (Self-Correction)
-    const fixPrompt = `
-      ROLE: Academic Editor.
-      TASK: Rewrite the draft section to address the specific critiques found by the reviewer.
-      
-      ORIGINAL DRAFT:
-      ${draftContent}
-      
-      CRITIQUES TO FIX:
-      ${critique.issues.join("\n")}
-      
-      INSTRUCTIONS:
-      - Improve the academic tone.
-      - Make claims more concrete.
-      - Maintain LaTeX formatting exactly.
-      - Do NOT summarize. Rewrite for quality.
-      ${fixInstructions}
-      
-      OUTPUT: Full rewritten LaTeX content (string).
-    `;
-
-    const fixResponse = await ai.models.generateContent({
-        model: modelId,
-        contents: fixPrompt
-    });
-
-    const improvedContent = fixResponse.text || draftContent;
-
-    return {
-        issuesFound: critique.issues,
-        critiqueScore: critique.score,
-        isAcceptable: true,
-        improvedContent: improvedContent
-    };
-
-  } catch (error) {
-    console.error("Critique loop failed:", error);
-    return {
-        issuesFound: ["Critique system error"],
-        critiqueScore: 5,
-        isAcceptable: true,
-        improvedContent: draftContent
-    };
-  }
+      }
+  }, sectionName);
 };

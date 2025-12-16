@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AuthorMetadata, ResearchTopic, Reference, MethodologyOption, LatexTemplate, EditorialLog, ReviewReport } from '../types';
+import { AuthorMetadata, ResearchTopic, Reference, MethodologyOption, LatexTemplate, EditorialLog, ReviewReport, WritingStyle, DraftSection } from '../types';
 import * as GeminiService from '../services/geminiService';
 import * as DeepSearchService from '../services/deepSearchService';
 import * as EditorialService from '../services/editorialService';
@@ -8,13 +8,18 @@ import * as ReviewService from '../services/reviewService';
 import * as CritiqueService from '../services/quality/critiqueService';
 import * as SynthesisService from '../services/quality/synthesisService';
 import * as TableService from '../services/quality/tableService';
+import * as CoherenceService from '../services/quality/coherenceService';
+import * as CitationGraphService from '../services/quality/citationGraphService';
+import * as AppendixService from '../services/quality/appendixService';
+import * as RoadmapService from '../services/roadmapService';
 
 import { AuthorMetadataForm } from './AuthorMetadataForm';
 import { LatexPreview } from './LatexPreview';
 import { ReviewReportView } from './ReviewReportView';
 import { CritiqueVisualizer } from './CritiqueVisualizer';
+import { WritingStyleSelector } from './WritingStyleSelector';
 import { TEMPLATES } from '../constants';
-import { CheckCircle2, Circle, Loader2, Play, RefreshCw, AlertTriangle, BookOpen, Database, ScanSearch, History, TrendingUp, Microscope, SearchX, Gavel, FileCode, CheckCheck, UserCheck, ShieldAlert, X, BrainCircuit, Terminal, Scale } from 'lucide-react';
+import { CheckCircle2, Circle, Loader2, Play, RefreshCw, AlertTriangle, BookOpen, Database, ScanSearch, History, TrendingUp, Microscope, SearchX, Gavel, FileCode, CheckCheck, UserCheck, ShieldAlert, X, BrainCircuit, Terminal, Scale, PenTool, GitBranch, Link, Map, FilePlus2 } from 'lucide-react';
 
 interface DraftingOrchestratorProps {
   topic: ResearchTopic;
@@ -24,24 +29,12 @@ interface DraftingOrchestratorProps {
   onComplete: () => void;
 }
 
-type DraftSection = {
-  id: string;
-  name: string;
-  content: string;
-  status: 'pending' | 'drafting' | 'critiquing' | 'completed' | 'error';
-  errorMsg?: string;
-  critiqueData?: {
-      original: string;
-      improved: string;
-      issues: string[];
-  };
-};
-
 export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
   topic, methodology, template: initialTemplate, references: initialReferences, onComplete
 }) => {
-  const [step, setStep] = useState<'metadata' | 'abstract' | 'gathering_citations' | 'sections' | 'review_choice' | 'editorial_polish' | 'final'>('metadata');
+  const [step, setStep] = useState<'metadata' | 'abstract' | 'gathering_citations' | 'roadmap' | 'sections' | 'review_choice' | 'editorial_polish' | 'final'>('metadata');
   const [authorData, setAuthorData] = useState<AuthorMetadata | null>(null);
+  const [writingStyle, setWritingStyle] = useState<WritingStyle>('Standard');
   
   // Local references state
   const [references, setReferences] = useState<Reference[]>(initialReferences);
@@ -66,20 +59,18 @@ export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
   const [reviewReport, setReviewReport] = useState<ReviewReport | null>(null);
   const [reviewAgent, setReviewAgent] = useState<string | null>(null);
 
+  // Appendix State
+  const [appendixContent, setAppendixContent] = useState<string>("");
+  const [isGeneratingAppendix, setIsGeneratingAppendix] = useState(false);
+
   // Quality State
   const [currentAction, setCurrentAction] = useState<string>("");
 
-  // Sections State
-  const [sections, setSections] = useState<DraftSection[]>([
-    { id: 'intro', name: 'Introduction', content: '', status: 'pending' },
-    { id: 'related', name: 'Related Work', content: '', status: 'pending' },
-    { id: 'method', name: 'Methodology', content: '', status: 'pending' },
-    { id: 'results', name: 'Results & Analysis', content: '', status: 'pending' },
-    { id: 'discussion', name: 'Discussion', content: '', status: 'pending' },
-    { id: 'conclusion', name: 'Conclusion', content: '', status: 'pending' },
-  ]);
+  // Sections State - Initially empty, populated by Roadmap
+  const [sections, setSections] = useState<DraftSection[]>([]);
   const [currentSectionIdx, setCurrentSectionIdx] = useState(0);
   const [streamingContent, setStreamingContent] = useState("");
+  const [isGeneratingRoadmap, setIsGeneratingRoadmap] = useState(false);
   
   // Final Assembly & Template Switching
   const [fullLatex, setFullLatex] = useState("");
@@ -141,7 +132,7 @@ export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
           (msg) => setGatheringStatus(msg)
       );
       
-      const combined = [...references, ...expandedRefs];
+      const combined: Reference[] = [...references, ...expandedRefs];
       const uniqueMap = new Map<string, Reference>();
       combined.forEach(r => {
           const key = r.title.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 50);
@@ -151,7 +142,7 @@ export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
           }
       });
       
-      const uniqueList = Array.from(uniqueMap.values());
+      const uniqueList: Reference[] = Array.from(uniqueMap.values());
       const readyRefs = assignCitationKeys(uniqueList);
       
       setReferences(readyRefs);
@@ -160,15 +151,54 @@ export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
       setGatheringStatus(`Deep search complete. Found ${readyRefs.length} validated references.`);
       await new Promise(r => setTimeout(r, 1500));
 
-      setStep('sections');
-      generateNextSection(0, readyRefs);
+      // Move to Roadmap generation instead of directly to sections
+      setStep('roadmap');
+      generateRoadmap(readyRefs);
 
     } catch (e) {
       console.error("Gathering failed", e);
       alert("Deep search failed, proceeding with initial references.");
+      setStep('roadmap');
+      generateRoadmap(references);
+    }
+  };
+
+  const generateRoadmap = async (currentRefs: Reference[]) => {
+      setIsGeneratingRoadmap(true);
+      try {
+          const blueprint = await RoadmapService.generatePaperRoadmap(topic.title, methodology, draftAbstract, currentRefs);
+          
+          // Convert blueprint to DraftSections
+          const newSections: DraftSection[] = blueprint.map((section, idx) => ({
+              id: `sec-${idx}`,
+              name: section.title,
+              content: '',
+              status: 'pending',
+              purpose: section.purpose,
+              customInstructions: section.draftingInstructions,
+              estimatedWordCount: section.wordCount
+          }));
+          
+          setSections(newSections);
+      } catch (e) {
+          console.error("Roadmap failed", e);
+          // Fallback to standard sections if AI fails
+          setSections([
+            { id: 'intro', name: 'Introduction', content: '', status: 'pending' },
+            { id: 'related', name: 'Related Work', content: '', status: 'pending' },
+            { id: 'method', name: 'Methodology', content: '', status: 'pending' },
+            { id: 'results', name: 'Results & Analysis', content: '', status: 'pending' },
+            { id: 'discussion', name: 'Discussion', content: '', status: 'pending' },
+            { id: 'conclusion', name: 'Conclusion', content: '', status: 'pending' },
+          ]);
+      } finally {
+          setIsGeneratingRoadmap(false);
+      }
+  };
+
+  const handleApproveRoadmap = () => {
       setStep('sections');
       generateNextSection(0, references);
-    }
   };
 
   const generateNextSection = async (index: number, currentRefs: Reference[] = references) => {
@@ -187,7 +217,7 @@ export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
     try {
       // 1. Synthetic Data Injection
       let injectedContext = "";
-      if (section.name.includes("Results") || section.name.includes("Methodology")) {
+      if (section.name.toLowerCase().includes("result") || section.name.toLowerCase().includes("method") || section.name.toLowerCase().includes("experiment")) {
          setCurrentAction("Computational Scientist: Simulating experiment...");
          try {
              const syntheticData = await SynthesisService.generateSyntheticExperiment(topic.title, methodology.name);
@@ -207,24 +237,61 @@ export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
          }
       }
 
-      const context = `
-        Title: ${draftTitle}
-        Abstract: ${draftAbstract}
-        Structure: ${sections.map(s => s.name).join(", ")}
-        Completed Sections: ${sections.slice(0, index).map(s => `--- ${s.name} ---\n${s.content}`).join("\n\n")}
-        ${injectedContext}
-      `;
+      // --- FEATURE: CITATION GRAPH WALKER (Related Work) ---
+      let content = "";
+      
+      // Heuristic: If it looks like Related Work, use the specialized walker
+      // But verify it's not overridden by custom roadmap instructions
+      const isRelatedWork = section.name.toLowerCase().includes("related work") || section.name.toLowerCase().includes("literature");
+      
+      if (isRelatedWork) {
+          setCurrentAction("Graph Walker: Mapping citation lineage & narrative arcs...");
+          try {
+              // Context from previous sections (Intro)
+              const previousContent = sections.slice(0, index).map(s => s.content).join("\n");
+              
+              // Use the specialized Graph Walker service
+              content = await CitationGraphService.generateNarrativeRelatedWork(
+                  topic.title,
+                  currentRefs,
+                  previousContent
+              );
+              
+              // Simulate streaming for UI consistency
+              setStreamingContent(content);
+          } catch (e) {
+              console.warn("Graph Walker failed, falling back to standard drafter.");
+              // Fallthrough to standard generation
+          }
+      }
 
-      // 2. Draft Initial Content
-      setCurrentAction("Author Agent: Drafting section content...");
-      const content = await GeminiService.generateDraftSection(
-        section.name, 
-        context, 
-        currentRefs, 
-        topic.title, 
-        methodology,
-        (chunk) => setStreamingContent(chunk)
-      );
+      // 2. Standard Drafting (if not Related Work or if Graph Walker failed)
+      if (!content) {
+          const context = `
+            Title: ${draftTitle}
+            Abstract: ${draftAbstract}
+            Structure: ${sections.map(s => s.name).join(", ")}
+            Completed Sections: ${sections.slice(0, index).map(s => `--- ${s.name} ---\n${s.content}`).join("\n\n")}
+            ${injectedContext}
+          `;
+
+          setCurrentAction("Author Agent: Architecting section structure...");
+          content = await GeminiService.generateDraftSection(
+            section.name, 
+            context, 
+            currentRefs, 
+            topic.title, 
+            methodology,
+            (chunk) => {
+                if (chunk) {
+                   setCurrentAction("Author Agent: Writing final prose...");
+                   setStreamingContent(chunk);
+                }
+            },
+            writingStyle,
+            section.customInstructions // Pass specific instructions from roadmap
+          );
+      }
 
       // 3. Iterative Self-Critique & Table Formatting
       setCurrentAction("Reviewer Agent: Critiquing and refining...");
@@ -279,14 +346,35 @@ export const DraftingOrchestrator: React.FC<DraftingOrchestratorProps> = ({
       generateNextSection(index, references);
   };
 
-  const compileRawLatex = (targetTemplate: LatexTemplate = activeTemplate) => {
+  const handleGenerateAppendix = async () => {
+      setIsGeneratingAppendix(true);
+      try {
+          const content = await AppendixService.generateAppendix(topic.title, methodology.name);
+          setAppendixContent(content);
+      } catch (e) {
+          console.error("Appendix failed", e);
+          alert("Failed to generate appendix.");
+      } finally {
+          setIsGeneratingAppendix(false);
+      }
+  };
+
+  const compileRawLatex = (targetTemplate: LatexTemplate = activeTemplate, overrideAbstract?: string) => {
       if (!authorData) return "";
       
       const bib = GeminiService.generateBibliography(references);
-      const body = sections.map(s => `
+      let body = sections.map(s => `
 \\section{${s.name}}
 ${s.content}
     `).join("\n");
+
+      // Append Appendix if it exists
+      if (appendixContent) {
+          body += `\n\n${appendixContent}\n`;
+      }
+
+      // Use the potentially revised abstract
+      const abstractToUse = overrideAbstract || draftAbstract;
 
       if (targetTemplate.rawTemplate) {
           let latex = targetTemplate.rawTemplate;
@@ -301,7 +389,7 @@ ${s.content}
           latex = latex.split('{{AUTHOR_EMAIL}}').join(authorData.email);
           latex = latex.split('{{AUTHOR_DEPT}}').join(authorData.department);
           latex = latex.split('{{AUTHOR_AFFIL}}').join(authorData.affiliation);
-          latex = latex.split('{{ABSTRACT}}').join(draftAbstract);
+          latex = latex.split('{{ABSTRACT}}').join(abstractToUse);
           latex = latex.split('{{KEYWORDS}}').join(draftKeywords.join(", "));
           latex = latex.split('{{BODY}}').join(body);
           latex = latex.split('{{BIBLIOGRAPHY}}').join(bib);
@@ -310,40 +398,7 @@ ${s.content}
           return latex;
       }
 
-      const preamble = `
-${targetTemplate.classFile}
-\\usepackage{amsmath,amssymb,amsfonts}
-\\usepackage{graphicx}
-\\usepackage{textcomp}
-\\usepackage{xcolor}
-\\usepackage{rotating} % For sidewaystable
-\\usepackage{booktabs} % For professional tables
-\\usepackage{array}
-
-\\begin{document}
-
-\\title{${draftTitle}}
-
-\\author{
-    \\IEEEauthorblockN{${authorData.fullName}}
-    \\IEEEauthorblockA{\\textit{${authorData.department}} \\\\
-    \\textit{${authorData.affiliation}} \\\\
-    ${authorData.email} \\\\
-    ${authorData.orcid ? `ORCID: ${authorData.orcid}` : ''}}
-}
-
-\\maketitle
-
-\\begin{abstract}
-${draftAbstract}
-\\end{abstract}
-
-\\begin{IEEEkeywords}
-${draftKeywords.join(", ")}
-\\end{IEEEkeywords}
-    `;
-
-    return preamble + body + `\n${bib}\n\\end{document}`;
+      return ""; // Fallback
   };
 
   const handleSkipReview = () => {
@@ -353,11 +408,26 @@ ${draftKeywords.join(", ")}
 
   const startEditorialBoard = async () => {
       setStep('editorial_polish');
-      const rawLatex = compileRawLatex();
+      let currentLatex = compileRawLatex();
       
       try {
+          // --- FEATURE: THREAD-WEAVER (Coherence Check) ---
+          setEditorialLogs(prev => [...prev, { agentName: "Thread-Weaver", action: "Working", details: "Checking Abstract vs Results consistency...", timestamp: Date.now() }]);
+          
+          const coherenceResult = await CoherenceService.checkAndAlignCoherence(draftTitle, sections, draftAbstract);
+          
+          if (!coherenceResult.aligned && coherenceResult.revisedAbstract) {
+              setEditorialLogs(prev => [...prev, { agentName: "Thread-Weaver", action: "Intervention", details: "Contradiction found! Rewriting Abstract to match findings.", timestamp: Date.now() }]);
+              // Update local state
+              setDraftAbstract(coherenceResult.revisedAbstract);
+              // Recompile with new abstract
+              currentLatex = compileRawLatex(activeTemplate, coherenceResult.revisedAbstract);
+          } else {
+              setEditorialLogs(prev => [...prev, { agentName: "Thread-Weaver", action: "Verified", details: "Global narrative consistency verified.", timestamp: Date.now() }]);
+          }
+
           // Simplified Linear Pipeline: Typesetter -> Reviewer -> Auditor
-          const polishedLatex = await EditorialService.performEditorialLoop(rawLatex, (log) => {
+          const polishedLatex = await EditorialService.performEditorialLoop(currentLatex, (log) => {
               setEditorialLogs(prev => [...prev, log]);
           });
           
@@ -365,7 +435,7 @@ ${draftKeywords.join(", ")}
           setStep('final');
       } catch (e) {
           console.error("Editorial failed", e);
-          setFullLatex(rawLatex);
+          setFullLatex(currentLatex);
           setStep('final');
       }
   };
@@ -445,8 +515,15 @@ ${draftKeywords.join(", ")}
                    className="w-full p-3 border rounded-lg font-serif leading-relaxed" 
                  />
                </div>
-               <div className="flex justify-end pt-4">
-                  <button onClick={handleApproveAbstract} className="bg-indigo-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-indigo-700 transition-colors flex items-center gap-2">
+               <div className="flex flex-col md:flex-row justify-between items-center pt-4 gap-4 border-t border-slate-100">
+                  <div className="flex items-center gap-3 w-full md:w-auto">
+                      <WritingStyleSelector 
+                        selectedStyle={writingStyle}
+                        onChange={setWritingStyle}
+                      />
+                  </div>
+                  
+                  <button onClick={handleApproveAbstract} className="bg-indigo-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-indigo-700 transition-colors flex items-center gap-2 w-full md:w-auto justify-center">
                     Approve & Start Deep Research <Play className="w-4 h-4" />
                   </button>
                </div>
@@ -492,6 +569,66 @@ ${draftKeywords.join(", ")}
       );
   }
 
+  // --- ROADMAP ARCHITECT VIEW ---
+  if (step === 'roadmap') {
+      return (
+          <div className="max-w-4xl mx-auto py-12 px-4 animate-fade-in">
+              <div className="text-center mb-10">
+                  <h2 className="text-3xl font-bold text-slate-900 mb-2 flex items-center justify-center gap-2">
+                      <Map className="w-8 h-8 text-indigo-600" /> Research Roadmap
+                  </h2>
+                  <p className="text-slate-500">
+                      {isGeneratingRoadmap ? "Architecting optimal paper structure..." : "The Roadmap Architect has designed a bespoke structure for your methodology."}
+                  </p>
+              </div>
+
+              {isGeneratingRoadmap ? (
+                  <div className="flex flex-col items-center justify-center py-20">
+                      <Loader2 className="w-16 h-16 text-indigo-600 animate-spin mb-4" />
+                      <p className="text-slate-600 font-medium">Analyzing methodology and literature...</p>
+                  </div>
+              ) : (
+                  <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+                      <div className="bg-slate-50 p-6 border-b border-slate-200 flex justify-between items-center">
+                          <span className="font-bold text-slate-700 uppercase tracking-widest text-xs">Table of Contents</span>
+                          <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-bold">{sections.length} Sections</span>
+                      </div>
+                      
+                      <div className="divide-y divide-slate-100">
+                          {sections.map((section, idx) => (
+                              <div key={idx} className="p-6 hover:bg-slate-50 transition-colors group">
+                                  <div className="flex items-start justify-between">
+                                      <div className="flex items-start gap-4">
+                                          <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 font-bold flex items-center justify-center shrink-0 border border-slate-200">
+                                              {idx + 1}
+                                          </div>
+                                          <div>
+                                              <h3 className="font-bold text-slate-900 text-lg mb-1">{section.name}</h3>
+                                              <p className="text-sm text-slate-500 italic mb-2">{section.purpose}</p>
+                                              <div className="text-xs text-slate-400 font-mono bg-slate-50 p-2 rounded border border-slate-100 opacity-80 group-hover:opacity-100 transition-opacity">
+                                                  {section.estimatedWordCount} words • {section.customInstructions?.substring(0, 100)}...
+                                              </div>
+                                          </div>
+                                      </div>
+                                  </div>
+                              </div>
+                          ))}
+                      </div>
+
+                      <div className="p-6 bg-slate-50 border-t border-slate-200 flex justify-end">
+                          <button 
+                              onClick={handleApproveRoadmap}
+                              className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-200 flex items-center gap-2"
+                          >
+                              Approve & Begin Drafting <Play className="w-4 h-4" />
+                          </button>
+                      </div>
+                  </div>
+              )}
+          </div>
+      );
+  }
+
   // REVIEW CHOICE UI
   if (step === 'review_choice') {
     return (
@@ -513,6 +650,14 @@ ${draftKeywords.join(", ")}
                         <FileCode className="w-5 h-5" /> View/Export Draft
                     </button>
                     <button 
+                        onClick={handleGenerateAppendix}
+                        disabled={isGeneratingAppendix || !!appendixContent}
+                        className="px-8 py-4 border-2 border-indigo-100 bg-indigo-50 text-indigo-700 rounded-xl font-bold hover:bg-indigo-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                        {isGeneratingAppendix ? <Loader2 className="w-5 h-5 animate-spin" /> : <FilePlus2 className="w-5 h-5" />}
+                        {appendixContent ? "Appendix Generated" : "Generate Appendix"}
+                    </button>
+                    <button 
                         onClick={startEditorialBoard}
                         className="px-8 py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg hover:shadow-indigo-200 hover:-translate-y-1 transition-all flex items-center justify-center gap-2"
                     >
@@ -528,6 +673,7 @@ ${draftKeywords.join(", ")}
   if (step === 'editorial_polish') {
       const activeAgent = editorialLogs[editorialLogs.length - 1]?.agentName || "Editor-in-Chief";
       const agents = [
+          { name: "Thread-Weaver", role: "Consistency", icon: <GitBranch className="w-6 h-6"/>, color: "bg-amber-100 text-amber-600" },
           { name: "Typesetter", role: "LaTeX Fixer", icon: <FileCode className="w-6 h-6"/>, color: "bg-blue-100 text-blue-600" },
           { name: "Reviewer", role: "Scientific Rigor", icon: <UserCheck className="w-6 h-6"/>, color: "bg-purple-100 text-purple-600" },
           { name: "Auditor", role: "Citation Check", icon: <CheckCheck className="w-6 h-6"/>, color: "bg-emerald-100 text-emerald-600" },
@@ -572,7 +718,7 @@ ${draftKeywords.join(", ")}
                       {editorialLogs.map((log, i) => (
                           <div key={i} className="font-mono text-xs animate-fade-in-up">
                               <span className="text-slate-500">[{new Date(log.timestamp).toLocaleTimeString().split(' ')[0]}]</span>{" "}
-                              <span className={`${log.agentName === 'Reviewer' ? 'text-purple-400' : 'text-blue-400'} font-bold`}>{log.agentName}</span>:{" "}
+                              <span className={`${log.agentName === 'Reviewer' ? 'text-purple-400' : log.agentName === 'Thread-Weaver' ? 'text-amber-400' : 'text-blue-400'} font-bold`}>{log.agentName}</span>:{" "}
                               <span className="text-slate-300">{log.details}</span>
                           </div>
                       ))}
@@ -610,7 +756,7 @@ ${draftKeywords.join(", ")}
                      s.status === 'error' ? <AlertTriangle className="w-4 h-4" /> :
                      idx === currentSectionIdx ? <Loader2 className="w-4 h-4 animate-spin" /> : 
                      <Circle className="w-4 h-4 text-slate-300" />}
-                    {s.name}
+                    <span className="truncate" title={s.name}>{s.name}</span>
                  </div>
                ))}
             </div>
@@ -619,23 +765,32 @@ ${draftKeywords.join(", ")}
         {/* Main Content Area */}
         <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-lg flex flex-col overflow-hidden relative">
             <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-               <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                 Drafting: {sections[currentSectionIdx].name}
-                 <span className="text-xs font-normal text-slate-500 ml-2">
+               <h3 className="font-bold text-slate-800 flex items-center gap-2 truncate max-w-md">
+                 <PenTool className="w-4 h-4 text-indigo-600" />
+                 Drafting: {sections[currentSectionIdx]?.name}
+                 <span className="text-xs font-normal text-slate-500 ml-2 hidden sm:inline">
                      {currentAction ? `(${currentAction})` : ''}
                  </span>
                </h3>
+               {/* Use the new Selector, but disabled during active drafting to prevent context switching mid-stream */}
+               <div className="scale-90 origin-right">
+                   <WritingStyleSelector 
+                        selectedStyle={writingStyle}
+                        onChange={setWritingStyle}
+                        disabled={sections[currentSectionIdx]?.status === 'drafting' || sections[currentSectionIdx]?.status === 'critiquing'}
+                   />
+               </div>
             </div>
             
             <div className="flex-grow relative bg-slate-900">
-                {sections[currentSectionIdx].status === 'critiquing' && sections[currentSectionIdx].critiqueData ? (
+                {sections[currentSectionIdx]?.status === 'critiquing' && sections[currentSectionIdx]?.critiqueData ? (
                     <CritiqueVisualizer 
                         originalText={sections[currentSectionIdx].critiqueData!.original}
                         improvedText={sections[currentSectionIdx].critiqueData!.improved}
                         issues={sections[currentSectionIdx].critiqueData!.issues}
                         onComplete={handleVisualizerComplete}
                     />
-                ) : sections[currentSectionIdx].status === 'error' ? (
+                ) : sections[currentSectionIdx]?.status === 'error' ? (
                     <div className="flex flex-col items-center justify-center h-full text-red-400 space-y-4 p-6">
                         <AlertTriangle className="w-12 h-12" />
                         <div className="text-center">
@@ -652,16 +807,16 @@ ${draftKeywords.join(", ")}
                 ) : (
                     <div className="p-6 overflow-y-auto h-full text-slate-300 font-mono text-sm">
                         <pre className="whitespace-pre-wrap">
-                        {sections[currentSectionIdx].status === 'drafting' 
+                        {sections[currentSectionIdx]?.status === 'drafting' 
                             ? streamingContent 
-                            : sections[currentSectionIdx].content || "Waiting for agent..."}
+                            : sections[currentSectionIdx]?.content || "Waiting for agent..."}
                         </pre>
                     </div>
                 )}
             </div>
 
             <div className="p-4 border-t border-slate-200 bg-white flex justify-end gap-3 relative z-10">
-               {sections[currentSectionIdx].status === 'completed' ? (
+               {sections[currentSectionIdx]?.status === 'completed' ? (
                   <>
                      <button onClick={() => generateNextSection(currentSectionIdx, references)} className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 flex items-center gap-2">
                         <RefreshCw className="w-4 h-4" /> Regenerate
@@ -670,7 +825,7 @@ ${draftKeywords.join(", ")}
                         {currentSectionIdx === sections.length - 1 ? "Finish Drafting" : "Next Section"} <Play className="w-4 h-4" />
                      </button>
                   </>
-               ) : sections[currentSectionIdx].status !== 'error' ? (
+               ) : sections[currentSectionIdx]?.status !== 'error' ? (
                   <span className="text-sm text-slate-500 italic flex items-center gap-2">
                      <Loader2 className="w-4 h-4 animate-spin" /> {currentAction || "Agent is thinking..."}
                   </span>
