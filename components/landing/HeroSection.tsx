@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, BarChart3, SearchCheck, Terminal, Network, Binary } from 'lucide-react';
+import { Play, BarChart3, SearchCheck, Terminal, Network, Binary, Zap, ArrowRight, Sparkles } from 'lucide-react';
 import { LemurMascot } from '../LemurMascot';
-import { LaunchButton } from '../LaunchButton';
 
 const ROTATING_DOMAINS = [
   "Rigorous Science",
@@ -107,7 +106,20 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onStart }) => {
               </p>
               
               <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
-                <LaunchButton onClick={onStart} />
+                <button
+                  onClick={onStart}
+                  className="group relative inline-flex h-14 items-center justify-center overflow-hidden rounded-full bg-slate-900 px-8 font-bold text-white transition-all duration-300 hover:bg-indigo-600 hover:shadow-[0_0_30px_-5px_rgba(79,70,229,0.5)] hover:scale-105 w-full sm:w-auto shadow-xl ring-4 ring-transparent hover:ring-indigo-100"
+                >
+                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
+                  <div className="relative flex items-center gap-2">
+                    <div className="relative">
+                        <Zap className="h-5 w-5 text-indigo-300 transition-transform duration-300 group-hover:text-white group-hover:fill-current" />
+                        <Sparkles className="absolute -bottom-1 -left-1 w-2 h-2 text-amber-300 opacity-0 group-hover:opacity-100 transition-opacity duration-300 animate-ping" />
+                    </div>
+                    <span className="text-lg tracking-wide">Initialize Swarm</span>
+                    <ArrowRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
+                  </div>
+                </button>
                 
                 <button className="flex items-center gap-3 px-8 py-4 rounded-full bg-white border border-slate-200 hover:border-indigo-300 text-slate-700 hover:text-indigo-600 transition-colors w-full sm:w-auto justify-center shadow-sm hover:shadow-md h-14">
                    <Play className="w-5 h-5 fill-current" />
